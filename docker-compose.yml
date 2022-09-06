@@ -1,0 +1,113 @@
+version: "3.9"
+services:
+
+  stacks-api:
+    build:
+      context: .
+      dockerfile: stacks-api.Dockerfile
+      args:
+        GIT_COMMIT: 97fbbd7fd7e42ed185b03246191d63d80d2dae9b
+    ports:
+      - "3999:3999"
+    expose:
+      - "3700"
+    environment:
+      NODE_ENVIRONMENT: production
+      STACKS_API_LOG_LEVEL: debug
+      STACKS_CHAIN_ID: "0x80000000"
+      STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
+      STACKS_BLOCKCHAIN_API_PORT: 3999
+      STACKS_CORE_EVENT_HOST: "0.0.0.0"
+      STACKS_CORE_EVENT_PORT: 3700
+      PG_HOST: postgres
+      PG_PORT: 5490
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DATABASE: stacks_blockchain_api
+      PG_SCHEMA: public
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      BTC_RPC_HOST: http://bitcoind
+      BTC_RPC_PORT: 18443
+      BTC_RPC_USER: krypton
+      BTC_RPC_PW: krypton
+      BTC_FAUCET_PK: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
+
+  postgres:
+    image: "postgres:14"
+    ports:
+      - "5490:5490"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stacks_blockchain_api
+      PGPORT: 5490
+
+  stacks-node:
+    build:
+      context: .
+      dockerfile: stacks-node.Dockerfile
+      args:
+        GIT_COMMIT: 4526cee3fbe01ded3cea8d559b5d5045daba75e9
+    ports:
+      - "20443:20443"
+    volumes:
+      - ./stacks-krypton-miner.toml/:/config/stacks-krypton-miner.toml
+      - stacks-data:/stacks-blockchain-data
+    environment:
+      STACKS_EVENT_OBSERVER: stacks-api:3700
+      # STACKS_LOG_TRACE: 1
+      # STACKS_LOG_DEBUG: 1
+    entrypoint: stacks-node start --config=/config/stacks-krypton-miner.toml
+
+  bitcoind:
+    image: "ruimarinho/bitcoin-core:0.20"
+    ports:
+      - "18443:18443"
+      - "18444:18444"
+    command:
+      -printtoconsole
+      -regtest=1
+      -disablewallet=0
+      -txindex=1
+      -server=1
+      -discover=0
+      -dns=0
+      -dnsseed=0
+      -listenonion=0
+      -rpcserialversion=0
+      -rest
+      -bind=0.0.0.0:18444
+      -rpcbind=0.0.0.0:18443
+      -rpcallowip=0.0.0.0/0
+      -rpcallowip=::/0
+      -rpcuser=krypton
+      -rpcpassword=krypton
+
+  bitcoind-miner:
+    image: "curlimages/curl:latest"
+    depends_on:
+      - bitcoind
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 1s
+        max_attempts: 1000
+        window: 360s
+    volumes:
+      - ./bitcoind-miner.sh:/usr/bin/bitcoind-miner.sh
+      - bitcoind:/home/bitcoin/.bitcoin
+    environment:
+      RPC_HOST: http://bitcoind:18443
+      RPC_AUTH: krypton:krypton
+      BTC_ADDR: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
+      INIT_BLOCKS: 101
+      MINE_INTERVAL: 10s
+    entrypoint: bitcoind-miner.sh
+
+volumes:
+  pgdata:
+  bitcoind:
+  stacks-data:
