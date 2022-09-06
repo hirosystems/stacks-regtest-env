@@ -2,7 +2,7 @@
 name = "krypton-node"
 rpc_bind = "0.0.0.0:20443"
 p2p_bind = "0.0.0.0:20444"
-working_dir = "/stacks-blockchain-data"
+working_dir = "$DATA_DIR"
 
 seed = "$MINER_SEED"
 local_peer_seed = "$MINER_SEED"
@@ -31,12 +31,12 @@ subsequent_attempt_time_ms = 5000
 chain = "bitcoin"
 mode = "krypton"
 poll_time_secs = 1
-pox_2_activation = $POX_2_ACTIVATION # 100
+pox_2_activation = $POX_2_ACTIVATION
 
 ### bitcoind-regtest connection info
 peer_host = "$BITCOIN_PEER_HOST"
-peer_port = $BITCOIN_PEER_PORT # 18444
-rpc_port = $BITCOIN_RPC_PORT # 18443
+peer_port = $BITCOIN_PEER_PORT
+rpc_port = $BITCOIN_RPC_PORT
 rpc_ssl = false
 username = "$BITCOIN_RPC_USER"
 password = "$BITCOIN_RPC_PASS"
@@ -56,7 +56,7 @@ start_height = 1
 
 [[burnchain.epochs]]
 epoch_name = "2.1"
-start_height = $EPOCH_21_START # 2
+start_height = $EPOCH_21_START
 
 [[ustx_balance]]
 address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"

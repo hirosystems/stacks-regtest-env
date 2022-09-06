@@ -59,6 +59,7 @@ services:
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1 # uncomment for debug logging
+      DATA_DIR: /stacks-blockchain-data
       STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: 18444
@@ -81,6 +82,8 @@ services:
     ports:
       - "18443:18443"
       - "18444:18444"
+    volumes:
+      - bitcoind:/home/bitcoin/.bitcoin
     command:
       -printtoconsole
       -regtest=1
@@ -114,7 +117,6 @@ services:
         window: 360s
     volumes:
       - ./bitcoind-miner.sh:/usr/bin/bitcoind-miner.sh
-      - bitcoind:/home/bitcoin/.bitcoin
     environment:
       RPC_HOST: http://bitcoind:18443
       RPC_AUTH: krypton:krypton
