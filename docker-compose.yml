@@ -57,12 +57,17 @@ services:
       - ./stacks-krypton-miner.toml/:/root/config.toml.in
       - stacks-data:/stacks-blockchain-data
     environment:
+      # STACKS_LOG_TRACE: 1 # uncomment for trace logging
+      # STACKS_LOG_DEBUG: 1 # uncomment for debug logging
       STACKS_EVENT_OBSERVER: stacks-api:3700
-      BURNCHAIN_PEER_HOST: bitcoind
-      BURNCHAIN_PEER_PORT: 18444
-      BURNCHAIN_RPC_PORT: 18443
-      # STACKS_LOG_TRACE: 1
-      # STACKS_LOG_DEBUG: 1
+      BITCOIN_PEER_HOST: bitcoind
+      BITCOIN_PEER_PORT: 18444
+      BITCOIN_RPC_PORT: 18443
+      BITCOIN_RPC_USER: krypton
+      BITCOIN_RPC_PASS: krypton
+      POX_2_ACTIVATION: 100
+      EPOCH_21_START: 2
+      MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
     entrypoint:
       - /bin/bash
       - -c

@@ -4,18 +4,8 @@ rpc_bind = "0.0.0.0:20443"
 p2p_bind = "0.0.0.0:20444"
 working_dir = "/stacks-blockchain-data"
 
-seed = "9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201"
-local_peer_seed = "9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201"
-# stx_address: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19
-# btc_address: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
-# public_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
-# bip39 entropy: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-
-# seed = "ff0000000000000000000000000000000000000000000000000000000000000001"
-# local_peer_seed = "ff0000000000000000000000000000000000000000000000000000000000000001"
-# stx_addr: ST18XQW4C58KHN9M6T9FG8K5MH1VSEW3S46JR9ZDG
-# btc_addr: mnynWGQ4A2nPFeEv6zaaqaUwU6fafyeg4N
-# pub_key: 0285c9bd8ad859cdb136a95fc386b552fb9fce855d6cdddad6aa62f800390e1b15
+seed = "$MINER_SEED"
+local_peer_seed = "$MINER_SEED"
 
 miner = true
 use_test_genesis_chainstate = true
@@ -41,15 +31,15 @@ subsequent_attempt_time_ms = 5000
 chain = "bitcoin"
 mode = "krypton"
 poll_time_secs = 1
-pox_2_activation = 100
+pox_2_activation = $POX_2_ACTIVATION # 100
 
 ### bitcoind-regtest connection info
-peer_host = "$BURNCHAIN_PEER_HOST"
-peer_port = $BURNCHAIN_PEER_PORT # 18444
-rpc_port = $BURNCHAIN_RPC_PORT # 18443
+peer_host = "$BITCOIN_PEER_HOST"
+peer_port = $BITCOIN_PEER_PORT # 18444
+rpc_port = $BITCOIN_RPC_PORT # 18443
 rpc_ssl = false
-username = "krypton"
-password = "krypton"
+username = "$BITCOIN_RPC_USER"
+password = "$BITCOIN_RPC_PASS"
 timeout = 30
 
 [[burnchain.epochs]]
@@ -66,7 +56,7 @@ start_height = 1
 
 [[burnchain.epochs]]
 epoch_name = "2.1"
-start_height = 2
+start_height = $EPOCH_21_START # 2
 
 [[ustx_balance]]
 address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"

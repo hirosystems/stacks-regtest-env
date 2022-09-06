@@ -5,8 +5,6 @@
 
 set -e
 
-# : "${MINE_INTERVAL:?Need to set MINE_INTERVAL}"
-
 rpc(){
     params=$(local IFS=","; shift; echo "$*";)
     body='{"jsonrpc":"1.0","id":"c","method":"'$1'","params":['$params']}'
