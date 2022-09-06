@@ -4,7 +4,7 @@ services:
   stacks-api:
     build:
       context: .
-      dockerfile: stacks-api.Dockerfile
+      dockerfile: Dockerfile.stacks-api
       args:
         GIT_COMMIT: 97fbbd7fd7e42ed185b03246191d63d80d2dae9b
     ports:
@@ -48,19 +48,28 @@ services:
   stacks-node:
     build:
       context: .
-      dockerfile: stacks-node.Dockerfile
+      dockerfile: Dockerfile.stacks-node
       args:
-        GIT_COMMIT: 4526cee3fbe01ded3cea8d559b5d5045daba75e9
+        GIT_COMMIT: 2643555e2139ea374f0f8e0276167eee39eb065c
     ports:
       - "20443:20443"
     volumes:
-      - ./stacks-krypton-miner.toml/:/config/stacks-krypton-miner.toml
+      - ./stacks-krypton-miner.toml/:/root/config.toml.in
       - stacks-data:/stacks-blockchain-data
     environment:
       STACKS_EVENT_OBSERVER: stacks-api:3700
+      BURNCHAIN_PEER_HOST: bitcoind
+      BURNCHAIN_PEER_PORT: 18444
+      BURNCHAIN_RPC_PORT: 18443
       # STACKS_LOG_TRACE: 1
       # STACKS_LOG_DEBUG: 1
-    entrypoint: stacks-node start --config=/config/stacks-krypton-miner.toml
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        envsubst < config.toml.in > config.toml
+        exec stacks-node start --config=config.toml
 
   bitcoind:
     image: "ruimarinho/bitcoin-core:0.20"
@@ -87,7 +96,9 @@ services:
       -rpcpassword=krypton
 
   bitcoind-miner:
-    image: "curlimages/curl:latest"
+    build:
+      context: .
+      dockerfile: Dockerfile.curl
     depends_on:
       - bitcoind
     deploy:

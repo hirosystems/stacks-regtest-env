@@ -1,0 +1,4 @@
+FROM debian:bullseye
+RUN echo "deb http://deb.debian.org/debian bullseye-backports main" | tee -a /etc/apt/sources.list
+RUN apt update && apt install curl/bullseye-backports -y
+CMD ["curl"]

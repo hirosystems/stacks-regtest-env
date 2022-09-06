@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-# Basic auto-mining script for a bitcoind-regtest node. Intended to be ran in the `curlimages/curl` docker image. 
-# Requires RPC access to a regtest bitcoind.
+# Basic auto-mining script for a bitcoind-regtest node.
+# Dependencies: bash and curl >=v7.76.
 
 set -e
 
