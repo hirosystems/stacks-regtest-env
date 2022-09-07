@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: Dockerfile.stacks-node
       args:
-        GIT_COMMIT: 2643555e2139ea374f0f8e0276167eee39eb065c
+        GIT_COMMIT: 3d2faca84b4702c211e652c606ed21855e027cf6
     ports:
       - "20443:20443"
     volumes:
