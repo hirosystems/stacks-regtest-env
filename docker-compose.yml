@@ -58,7 +58,7 @@ services:
       - stacks-data:/stacks-blockchain-data
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
-      # STACKS_LOG_DEBUG: 1 # uncomment for debug logging
+      STACKS_LOG_DEBUG: 1
       DATA_DIR: /stacks-blockchain-data
       STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
