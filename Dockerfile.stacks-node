@@ -1,5 +1,6 @@
 FROM rust:bullseye as builder
 
+# TODO: is there a built-in required arg syntax?
 ARG GIT_COMMIT
 RUN test -n "$GIT_COMMIT" || (echo "GIT_COMMIT not set" && false)
 
@@ -13,8 +14,14 @@ RUN git init && \
 
 RUN cargo build --package stacks-node --bin stacks-node --release
 
-FROM debian:bullseye
-COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/stacks-node
-RUN apt update && apt install gettext-base -y
+FROM debian:bullseye-backports
+
+COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
+
+COPY --from=ruimarinho/bitcoin-core:0.20.1 /opt/bitcoin-*/bin /usr/local/bin
+
+RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 WORKDIR /root
 CMD ["stacks-node"]
