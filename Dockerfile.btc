@@ -1,0 +1,4 @@
+FROM ruimarinho/bitcoin-core:0.20
+RUN echo "deb http://deb.debian.org/debian bullseye-backports main" | tee -a /etc/apt/sources.list
+RUN apt update && apt install -y curl/bullseye-backports jq zstd
+CMD ["curl"]

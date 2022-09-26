@@ -1,129 +1,125 @@
 version: "3.9"
+
 services:
 
-  stacks-api:
+  bitcoind-snapshot-init:
+    profiles: ["snapshot-init"]
     build:
       context: .
-      dockerfile: Dockerfile.stacks-api
-      args:
-        GIT_COMMIT: 97fbbd7fd7e42ed185b03246191d63d80d2dae9b
-    ports:
-      - "3999:3999"
-    expose:
-      - "3700"
-    environment:
-      NODE_ENVIRONMENT: production
-      STACKS_API_LOG_LEVEL: debug
-      STACKS_CHAIN_ID: "0x80000000"
-      STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
-      STACKS_BLOCKCHAIN_API_PORT: 3999
-      STACKS_CORE_EVENT_HOST: "0.0.0.0"
-      STACKS_CORE_EVENT_PORT: 3700
-      PG_HOST: postgres
-      PG_PORT: 5490
-      PG_USER: postgres
-      PG_PASSWORD: postgres
-      PG_DATABASE: stacks_blockchain_api
-      PG_SCHEMA: public
-      STACKS_CORE_RPC_HOST: stacks-node
-      STACKS_CORE_RPC_PORT: 20443
-      BTC_RPC_HOST: http://bitcoind
-      BTC_RPC_PORT: 18443
-      BTC_RPC_USER: krypton
-      BTC_RPC_PW: krypton
-      BTC_FAUCET_PK: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
-
-  postgres:
-    image: "postgres:14"
-    ports:
-      - "5490:5490"
+      dockerfile: Dockerfile.btc
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: stacks_blockchain_api
-      PGPORT: 5490
-
-  stacks-node:
-    build:
-      context: .
-      dockerfile: Dockerfile.stacks-node
-      args:
-        GIT_COMMIT: 3d2faca84b4702c211e652c606ed21855e027cf6
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+      - ./init-data:/init-data
+      - bitcoind:/bitcoin-data
+    hostname: bitcoind
     ports:
-      - "20443:20443"
-    volumes:
-      - ./stacks-krypton-miner.toml/:/root/config.toml.in
-      - stacks-data:/stacks-blockchain-data
-    environment:
-      # STACKS_LOG_TRACE: 1 # uncomment for trace logging
-      STACKS_LOG_DEBUG: 1
-      DATA_DIR: /stacks-blockchain-data
-      STACKS_EVENT_OBSERVER: stacks-api:3700
-      BITCOIN_PEER_HOST: bitcoind
-      BITCOIN_PEER_PORT: 18444
-      BITCOIN_RPC_PORT: 18443
-      BITCOIN_RPC_USER: krypton
-      BITCOIN_RPC_PASS: krypton
-      POX_2_ACTIVATION: 100
-      EPOCH_21_START: 2
-      MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
+      - "18443:18443"
+      - "18444:18444"
+    healthcheck:
+      test: bitcoin-cli -rpcwait getmininginfo
+      interval: 100ms
+      timeout: 30s
     entrypoint:
       - /bin/bash
       - -c
       - |
         set -e
-        envsubst < config.toml.in > config.toml
-        exec stacks-node start --config=config.toml
+        rm -rf /bitcoin-data/*
+        bitcoind
+        tar -C /bitcoin-data -czf /init-data/bitcoind.tar.gz ./
+        echo "Created bitcoind.tar.gz"
+
+  bitcoind-mine-init:
+    profiles: ["snapshot-init"]
+    build:
+      context: .
+      dockerfile: Dockerfile.btc
+    volumes:
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+      - ./init-data:/init-data
+      - bitcoind:/bitcoin-data
+    depends_on:
+      bitcoind-snapshot-init:
+        condition: service_healthy
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        bitcoin-cli -rpcconnect=bitcoind importaddress $BTC_ADDR "" false
+        bitcoin-cli -rpcconnect=bitcoind generatetoaddress $INIT_BLOCKS $BTC_ADDR
+        # TODO: probably don't need this wallet height check since generatetoaddress doens't return until wallet is done?
+        while true; do
+          TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true | jq '.[].blockheight')
+          if [ "$$TX" -ge "$INIT_BLOCKS" ]; then
+            echo "Mined wallet to block: $$TX"
+            break
+          else
+            echo "Wallet not ready, block height: $$TX"
+          fi
+          sleep 0.01s
+        done
+        bitcoin-cli -rpcconnect=bitcoind stop
 
   bitcoind:
-    image: "ruimarinho/bitcoin-core:0.20"
+    profiles: ["default", "bitcoind-only"]
+    build:
+      context: .
+      dockerfile: Dockerfile.btc
     ports:
       - "18443:18443"
       - "18444:18444"
     volumes:
-      - bitcoind:/home/bitcoin/.bitcoin
-    command:
-      -printtoconsole
-      -regtest=1
-      -disablewallet=0
-      -txindex=1
-      -server=1
-      -discover=0
-      -dns=0
-      -dnsseed=0
-      -listenonion=0
-      -rpcserialversion=0
-      -rest
-      -bind=0.0.0.0:18444
-      -rpcbind=0.0.0.0:18443
-      -rpcallowip=0.0.0.0/0
-      -rpcallowip=::/0
-      -rpcuser=krypton
-      -rpcpassword=krypton
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+      - ./init-data:/init-data
+      - bitcoind:/bitcoin-data
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        rm -rf /bitcoin-data/*
+        tar -xf /init-data/bitcoind.tar.gz -C /bitcoin-data
+        # bitcoind -conf=/root/.bitcoin/bitcoin.conf -datadir=/bitcoin-data
+        bitcoind
+    healthcheck:
+      test: bitcoin-cli -rpcwait getmininginfo
+      interval: 100ms
+      timeout: 30s
 
   bitcoind-miner:
+    profiles: ["default"]
     build:
       context: .
-      dockerfile: Dockerfile.curl
-    depends_on:
-      - bitcoind
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 1s
-        max_attempts: 1000
-        window: 360s
+      dockerfile: Dockerfile.btc
     volumes:
       - ./bitcoind-miner.sh:/usr/bin/bitcoind-miner.sh
-    environment:
-      RPC_HOST: http://bitcoind:18443
-      RPC_AUTH: krypton:krypton
-      BTC_ADDR: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
-      INIT_BLOCKS: 101
-      MINE_INTERVAL: 10s
-    entrypoint: bitcoind-miner.sh
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+      - bitcoind:/bitcoin-data
+    depends_on:
+      bitcoind:
+        condition: service_healthy
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $BTC_ADDR
+        while true; do
+          echo "Checking for Stacks mining tx..."
+          tx=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
+          case "$$tx" in
+          *send*)
+            echo "Detected Stacks mining tx, starting Bitcoin block auto-mining on $MINE_INTERVAL interval..."
+            break
+            ;;
+          *)
+            echo "No Stacks mining tx detected in:"
+            echo "$$tx"
+            ;;
+          esac
+          sleep 1s
+        done
 
 volumes:
   pgdata:

@@ -1,31 +1,29 @@
 #!/usr/bin/env bash
 
 # Basic auto-mining script for a bitcoind-regtest node.
-# Dependencies: bash and curl >=v7.76.
+# Dependencies: bitcoin-cli, bash
 
 set -e
 
-rpc(){
-    params=$(local IFS=","; shift; echo "$*";)
-    body='{"jsonrpc":"1.0","id":"c","method":"'$1'","params":['$params']}'
-    echo "Sending RPC payload: $body" >&2
-    curl -sS --fail-with-body -u "$RPC_AUTH" -H 'content-type: text/plain;' --data-binary "$body" "$RPC_HOST"
-}
-
-echo "Creating default wallet for $BTC_ADDR ..."
-rpc importaddress \"$BTC_ADDR\" '""' false
-
-echo "Mining initial $INIT_BLOCKS blocks to $BTC_ADDR ..."
-rpc generatetoaddress $INIT_BLOCKS \"$BTC_ADDR\"
+if [[ -z $BTC_MINER_ENABLED || $BTC_MINER_ENABLED == "true" ]]; then
+    echo "BTC mining is enabled"
+else
+    echo "BTC mining is not enabled"
+    exit 0
+fi
 
 while true; do
     echo "Checking for Stacks mining tx..."
-    tx=$(rpc listtransactions \"*\" 1 0 true)
+    tx=$(bitcoin-cli -rpcwait -rpcconnect="$BTC_RPC_HOST:$BTC_RPC_PORT" -rpcuser="$BTC_RPC_USER" -rpcpassword="$BTC_RPC_PW" listtransactions '*' 1 0 true)
     case "$tx" in
     *send*)
         echo "Detected Stacks mining tx, starting Bitcoin block auto-mining on $MINE_INTERVAL interval..."
         break
-    ;;
+        ;;
+    *)
+        echo "No Stacks mining tx detected in:"
+        echo "$tx"
+        ;;
     esac
     sleep 1s
 done
@@ -33,6 +31,6 @@ done
 # TODO: try polling /v2/info to determine if another block is ready to mine
 while true; do
     echo "Mining block to $BTC_ADDR"
-    rpc generatetoaddress 1 \"$BTC_ADDR\"
+    bitcoin-cli -rpcwait -rpcconnect="$BTC_RPC_HOST:$BTC_RPC_PORT" -rpcuser="$BTC_RPC_USER" -rpcpassword="$BTC_RPC_PW" generatetoaddress 1 "$BTC_ADDR"
     sleep $MINE_INTERVAL
 done
