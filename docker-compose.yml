@@ -11,55 +11,24 @@ services:
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - ./init-data:/init-data
       - bitcoind:/bitcoin-data
-    hostname: bitcoind
     ports:
       - "18443:18443"
       - "18444:18444"
-    healthcheck:
-      test: bitcoin-cli -rpcwait getmininginfo
-      interval: 100ms
-      timeout: 30s
     entrypoint:
       - /bin/bash
       - -c
       - |
         set -e
         rm -rf /bitcoin-data/*
-        bitcoind
+        bitcoind &
+        btcd=$$!
+        bitcoin-cli -rpcwait getmininginfo
+        bitcoin-cli importaddress $BTC_ADDR "" false
+        bitcoin-cli generatetoaddress $INIT_BLOCKS $BTC_ADDR
+        bitcoin-cli stop
+        wait $$btcd
         tar -C /bitcoin-data -czf /init-data/bitcoind.tar.gz ./
-        echo "Created bitcoind.tar.gz"
 
-  bitcoind-mine-init:
-    profiles: ["snapshot-init"]
-    build:
-      context: .
-      dockerfile: Dockerfile.btc
-    volumes:
-      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
-      - ./init-data:/init-data
-      - bitcoind:/bitcoin-data
-    depends_on:
-      bitcoind-snapshot-init:
-        condition: service_healthy
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        set -e
-        bitcoin-cli -rpcconnect=bitcoind importaddress $BTC_ADDR "" false
-        bitcoin-cli -rpcconnect=bitcoind generatetoaddress $INIT_BLOCKS $BTC_ADDR
-        # TODO: probably don't need this wallet height check since generatetoaddress doens't return until wallet is done?
-        while true; do
-          TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true | jq '.[].blockheight')
-          if [ "$$TX" -ge "$INIT_BLOCKS" ]; then
-            echo "Mined wallet to block: $$TX"
-            break
-          else
-            echo "Wallet not ready, block height: $$TX"
-          fi
-          sleep 0.01s
-        done
-        bitcoin-cli -rpcconnect=bitcoind stop
 
   bitcoind:
     profiles: ["default", "bitcoind-only"]
