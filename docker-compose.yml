@@ -161,19 +161,15 @@ services:
         set -e
         bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $BTC_ADDR
         while true; do
-          echo "Checking for Stacks mining tx..."
           TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
           CONFS=$$(echo "$$TX" | jq '.[].confirmations')
           if [ "$$CONFS" = "0" ]; then
-            echo "Detected Stacks mining mempool tx:"
-            echo "$$TX"
-            echo "Mining btc block..."
+            echo "Detected Stacks mining mempool tx, mining btc block..."
             bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$BTC_ADDR"
           else
-            echo "No Stacks mining tx detected in:"
-            echo "$$TX"
+            echo "No Stacks mining tx detected"
           fi
-          sleep 0.5s
+          sleep 0.25s
         done
 
   stacks-node:
