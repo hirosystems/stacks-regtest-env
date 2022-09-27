@@ -181,7 +181,7 @@ services:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
       DATA_DIR: /stacks-blockchain-data
-      # STACKS_EVENT_OBSERVER: stacks-api:3700
+      STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: $BITCOIN_PEER_PORT
       BITCOIN_RPC_PORT: $BITCOIN_RPC_PORT
@@ -202,6 +202,52 @@ services:
         tar -xf /init-data/stacks-blockchain-data.tar.gz -C /stacks-blockchain-data
         envsubst < config.toml.in > config.toml
         exec stacks-node start --config=config.toml
+
+  postgres:
+    profiles: ["default"]
+    image: "postgres:14"
+    ports:
+      - "5490:5490"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stacks_blockchain_api
+      PGPORT: 5490
+
+  stacks-api:
+    profiles: ["default"]
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-api
+      args:
+        GIT_COMMIT: 97fbbd7fd7e42ed185b03246191d63d80d2dae9b
+    ports:
+      - "3999:3999"
+    expose:
+      - "3700"
+    environment:
+      NODE_ENVIRONMENT: production
+      STACKS_API_LOG_LEVEL: debug
+      STACKS_CHAIN_ID: "0x80000000"
+      STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
+      STACKS_BLOCKCHAIN_API_PORT: 3999
+      STACKS_CORE_EVENT_HOST: "0.0.0.0"
+      STACKS_CORE_EVENT_PORT: 3700
+      PG_HOST: postgres
+      PG_PORT: 5490
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DATABASE: stacks_blockchain_api
+      PG_SCHEMA: public
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      BTC_RPC_HOST: http://bitcoind
+      BTC_RPC_PORT: 18443
+      BTC_RPC_USER: krypton
+      BTC_RPC_PW: krypton
+      BTC_FAUCET_PK: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
 
 volumes:
   pgdata:
