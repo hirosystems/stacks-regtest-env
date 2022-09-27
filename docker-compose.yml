@@ -55,18 +55,12 @@ services:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
       DATA_DIR: /stacks-blockchain-data
-      # STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
-      BITCOIN_PEER_PORT: 18444
-      BITCOIN_RPC_PORT: 18443
-      BITCOIN_RPC_USER: krypton
-      BITCOIN_RPC_PASS: krypton
-      EPOCH_10_START: 0
-      EPOCH_20_START: 1
-      EPOCH_205_START: 2
-      EPOCH_21_START: 3
-      POX_2_ACTIVATION: 4
-      MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
+      BITCOIN_PEER_PORT: $BITCOIN_PEER_PORT
+      BITCOIN_RPC_PORT: $BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: $BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: $BITCOIN_RPC_PASS
+      MINER_SEED: $MINER_SEED
     entrypoint:
       - /bin/bash
       - -c
@@ -77,9 +71,9 @@ services:
         stacks-node start --config=config.toml &
         STACKS_PID=$$!
         while true; do
-          HEIGHT=$$(curl localhost:20443/v2/info | jq '.burn_block_height')
-          if [ "$$HEIGHT" -ge 101 ]; then
-            echo "Stacks node caught up to block 101"
+          HEIGHT=$$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+          if [ "$$HEIGHT" -ge "$INIT_BLOCKS" ]; then
+            echo "Stacks node caught up to block $INIT_BLOCKS"
             break
           else
             echo "Stacks node not ready, at block: $$HEIGHT"
@@ -89,11 +83,6 @@ services:
         kill $$STACKS_PID
         wait $$STACKS_PID
         bitcoin-cli -rpcconnect=bitcoind stop
-    healthcheck:
-      test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
-      timeout: 60s
-      interval: 300ms
-      retries: 1000000
 
   stacks-node-boostrapped-watcher:
     profiles: ["snapshot-init"]
@@ -169,7 +158,7 @@ services:
           else
             echo "No Stacks mining tx detected"
           fi
-          sleep 0.25s
+          sleep $MINE_INTERVAL
         done
 
   stacks-node:
@@ -194,16 +183,11 @@ services:
       DATA_DIR: /stacks-blockchain-data
       # STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
-      BITCOIN_PEER_PORT: 18444
-      BITCOIN_RPC_PORT: 18443
-      BITCOIN_RPC_USER: krypton
-      BITCOIN_RPC_PASS: krypton
-      EPOCH_10_START: 0
-      EPOCH_20_START: 1
-      EPOCH_205_START: 2
-      EPOCH_21_START: 3
-      POX_2_ACTIVATION: 4
-      MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
+      BITCOIN_PEER_PORT: $BITCOIN_PEER_PORT
+      BITCOIN_RPC_PORT: $BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: $BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: $BITCOIN_RPC_PASS
+      MINER_SEED: $MINER_SEED
     # healthcheck:
     #   test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
     #   timeout: 60s
