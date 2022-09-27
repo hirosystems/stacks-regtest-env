@@ -162,26 +162,18 @@ services:
         bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $BTC_ADDR
         while true; do
           echo "Checking for Stacks mining tx..."
-          tx=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
-          case "$$tx" in
-          *send*)
-            echo "Detected Stacks mining tx:"
-            echo "$$tx"
-            echo "Starting Bitcoin block auto-mining on $MINE_INTERVAL interval..."
-            break
-            ;;
-          *)
-            echo "No Stacks mining tx detected in:"
-            echo "$$tx"
-            ;;
-          esac
-          sleep 0.5s
-        done
-        # TODO: try polling /v2/info to determine if another block is ready to mine
-        while true; do
-            echo "Mining block to $BTC_ADDR"
+          TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
+          CONFS=$$(echo "$$TX" | jq '.[].confirmations')
+          if [ "$$CONFS" = "0" ]; then
+            echo "Detected Stacks mining mempool tx:"
+            echo "$$TX"
+            echo "Mining btc block..."
             bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$BTC_ADDR"
-            sleep $MINE_INTERVAL
+          else
+            echo "No Stacks mining tx detected in:"
+            echo "$$TX"
+          fi
+          sleep 0.5s
         done
 
   stacks-node:
