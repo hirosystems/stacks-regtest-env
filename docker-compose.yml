@@ -2,60 +2,22 @@ version: "3.9"
 
 services:
 
-  bitcoind-snapshot-init:
-    profiles: ["snapshot-init"]
-    build:
-      context: .
-      dockerfile: Dockerfile.btc
-    volumes:
-      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
-      - ./init-data:/init-data
-      - bitcoind:/bitcoin-data
-    hostname: bitcoind
-    ports:
-      - "18443:18443"
-      - "18444:18444"
-    healthcheck:
-      test: bitcoin-cli -rpcwait getmininginfo
-      interval: 100ms
-      timeout: 30s
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        set -e
-        rm -rf /bitcoin-data/*
-        bitcoind &
-        btcd=$$!
-        bitcoin-cli -rpcwait getmininginfo
-        bitcoin-cli importaddress $BTC_ADDR "" false
-        bitcoin-cli generatetoaddress $INIT_BLOCKS $BTC_ADDR
-        wait $$btcd
-
-  stacks-node-snapshot-init:
+  snapshot-init:
     profiles: ["snapshot-init"]
     build:
       context: .
       dockerfile: Dockerfile.stacks-node
       args:
         GIT_COMMIT: 0efa50283bb7cd77f10a9ad8066f9e782a1de067
-    hostname: stacks-node
-    ports:
-      - "20443:20443"
     volumes:
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - ./stacks-krypton-miner.toml/:/root/config.toml.in
       - ./init-data:/init-data
       - stacks-data:/stacks-blockchain-data
       - bitcoind:/bitcoin-data
-    depends_on:
-      bitcoind-snapshot-init:
-        condition: service_healthy
     environment:
-      # STACKS_LOG_TRACE: 1 # uncomment for trace logging
-      # STACKS_LOG_DEBUG: 1
       DATA_DIR: /stacks-blockchain-data
-      BITCOIN_PEER_HOST: bitcoind
+      BITCOIN_PEER_HOST: localhost
       BITCOIN_PEER_PORT: $BITCOIN_PEER_PORT
       BITCOIN_RPC_PORT: $BITCOIN_RPC_PORT
       BITCOIN_RPC_USER: $BITCOIN_RPC_USER
@@ -66,13 +28,21 @@ services:
       - -c
       - |
         set -e
+        rm -rf /bitcoin-data/*
+        bitcoind &
+        BTCD_PID=$$!
+        bitcoin-cli -rpcwait getmininginfo
+        bitcoin-cli importaddress $BTC_ADDR "" false
+        bitcoin-cli generatetoaddress $INIT_BLOCKS $BTC_ADDR
+
         rm -rf /stacks-blockchain-data/*
         envsubst < config.toml.in > config.toml
         stacks-node start --config=config.toml &
         STACKS_PID=$$!
+
         while true; do
           HEIGHT=$$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-          if [ "$$HEIGHT" -ge "$INIT_BLOCKS" ]; then
+          if [ "$$HEIGHT" = "$INIT_BLOCKS" ]; then
             echo "Stacks node caught up to block $INIT_BLOCKS"
             break
           else
@@ -80,29 +50,13 @@ services:
           fi
           sleep 0.5s
         done
+
         kill $$STACKS_PID
         wait $$STACKS_PID
-        bitcoin-cli -rpcconnect=bitcoind stop
 
-  stacks-node-boostrapped-watcher:
-    profiles: ["snapshot-init"]
-    build:
-      context: .
-      dockerfile: Dockerfile.btc
-    depends_on:
-      bitcoind-snapshot-init:
-        condition: service_completed_successfully
-      stacks-node-snapshot-init:
-        condition: service_completed_successfully
-    volumes:
-      - ./init-data:/init-data
-      - stacks-data:/stacks-blockchain-data
-      - bitcoind:/bitcoin-data
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        set -e
+        bitcoin-cli stop
+        wait $$BTCD_PID
+
         tar -C /bitcoin-data -czf /init-data/bitcoind.tar.gz ./
         tar -C /stacks-blockchain-data -czf /init-data/stacks-blockchain-data.tar.gz ./
 
