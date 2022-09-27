@@ -62,10 +62,10 @@ services:
       BITCOIN_RPC_USER: krypton
       BITCOIN_RPC_PASS: krypton
       EPOCH_10_START: 0
-      EPOCH_20_START: 104
-      EPOCH_205_START: 105
-      EPOCH_21_START: 106
-      POX_2_ACTIVATION: 107
+      EPOCH_20_START: 1
+      EPOCH_205_START: 2
+      EPOCH_21_START: 3
+      POX_2_ACTIVATION: 4
       MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
     entrypoint:
       - /bin/bash
@@ -165,8 +165,9 @@ services:
           tx=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
           case "$$tx" in
           *send*)
-            echo "Detected Stacks mining tx, starting Bitcoin block auto-mining on $MINE_INTERVAL interval..."
-            sleep 10000000000s
+            echo "Detected Stacks mining tx:"
+            echo "$$tx"
+            echo "Starting Bitcoin block auto-mining on $MINE_INTERVAL interval..."
             break
             ;;
           *)
@@ -174,7 +175,13 @@ services:
             echo "$$tx"
             ;;
           esac
-          sleep 5s
+          sleep 0.5s
+        done
+        # TODO: try polling /v2/info to determine if another block is ready to mine
+        while true; do
+            echo "Mining block to $BTC_ADDR"
+            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$BTC_ADDR"
+            sleep $MINE_INTERVAL
         done
 
   stacks-node:
@@ -195,7 +202,7 @@ services:
         condition: service_started
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
-      STACKS_LOG_DEBUG: 1
+      # STACKS_LOG_DEBUG: 1
       DATA_DIR: /stacks-blockchain-data
       # STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
@@ -204,16 +211,16 @@ services:
       BITCOIN_RPC_USER: krypton
       BITCOIN_RPC_PASS: krypton
       EPOCH_10_START: 0
-      EPOCH_20_START: 104
-      EPOCH_205_START: 105
-      EPOCH_21_START: 106
-      POX_2_ACTIVATION: 107
+      EPOCH_20_START: 1
+      EPOCH_205_START: 2
+      EPOCH_21_START: 3
+      POX_2_ACTIVATION: 4
       MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
-    healthcheck:
-      test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
-      timeout: 60s
-      interval: 300ms
-      retries: 1000000
+    # healthcheck:
+    #   test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
+    #   timeout: 60s
+    #   interval: 300ms
+    #   retries: 1000000
     entrypoint:
       - /bin/bash
       - -c
