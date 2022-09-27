@@ -38,7 +38,7 @@ services:
       context: .
       dockerfile: Dockerfile.stacks-node
       args:
-        GIT_COMMIT: 3d2faca84b4702c211e652c606ed21855e027cf6
+        GIT_COMMIT: 0efa50283bb7cd77f10a9ad8066f9e782a1de067
     hostname: stacks-node
     ports:
       - "20443:20443"
@@ -61,8 +61,11 @@ services:
       BITCOIN_RPC_PORT: 18443
       BITCOIN_RPC_USER: krypton
       BITCOIN_RPC_PASS: krypton
-      POX_2_ACTIVATION: 100
-      EPOCH_21_START: 2
+      EPOCH_10_START: 0
+      EPOCH_20_START: 104
+      EPOCH_205_START: 105
+      EPOCH_21_START: 106
+      POX_2_ACTIVATION: 107
       MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
     entrypoint:
       - /bin/bash
@@ -133,7 +136,6 @@ services:
         set -e
         rm -rf /bitcoin-data/*
         tar -xf /init-data/bitcoind.tar.gz -C /bitcoin-data
-        # bitcoind -conf=/root/.bitcoin/bitcoin.conf -datadir=/bitcoin-data
         bitcoind
     healthcheck:
       test: bitcoin-cli -rpcwait getmininginfo
@@ -164,6 +166,7 @@ services:
           case "$$tx" in
           *send*)
             echo "Detected Stacks mining tx, starting Bitcoin block auto-mining on $MINE_INTERVAL interval..."
+            sleep 10000000000s
             break
             ;;
           *)
@@ -171,8 +174,55 @@ services:
             echo "$$tx"
             ;;
           esac
-          sleep 1s
+          sleep 5s
         done
+
+  stacks-node:
+    profiles: ["default"]
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-node
+      args:
+        GIT_COMMIT: 0efa50283bb7cd77f10a9ad8066f9e782a1de067
+    ports:
+      - "20443:20443"
+    volumes:
+      - ./stacks-krypton-miner.toml/:/root/config.toml.in
+      - ./init-data:/init-data
+      - stacks-data:/stacks-blockchain-data
+    depends_on:
+      bitcoind-miner:
+        condition: service_started
+    environment:
+      # STACKS_LOG_TRACE: 1 # uncomment for trace logging
+      STACKS_LOG_DEBUG: 1
+      DATA_DIR: /stacks-blockchain-data
+      # STACKS_EVENT_OBSERVER: stacks-api:3700
+      BITCOIN_PEER_HOST: bitcoind
+      BITCOIN_PEER_PORT: 18444
+      BITCOIN_RPC_PORT: 18443
+      BITCOIN_RPC_USER: krypton
+      BITCOIN_RPC_PASS: krypton
+      EPOCH_10_START: 0
+      EPOCH_20_START: 104
+      EPOCH_205_START: 105
+      EPOCH_21_START: 106
+      POX_2_ACTIVATION: 107
+      MINER_SEED: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
+    healthcheck:
+      test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
+      timeout: 60s
+      interval: 300ms
+      retries: 1000000
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        rm -rf /stacks-blockchain-data/*
+        tar -xf /init-data/stacks-blockchain-data.tar.gz -C /stacks-blockchain-data
+        envsubst < config.toml.in > config.toml
+        exec stacks-node start --config=config.toml
 
 volumes:
   pgdata:

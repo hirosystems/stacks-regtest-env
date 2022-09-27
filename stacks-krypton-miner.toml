@@ -46,15 +46,15 @@ timeout = 30
 
 [[burnchain.epochs]]
 epoch_name = "1.0"
-start_height = 0
+start_height = $EPOCH_10_START
 
 [[burnchain.epochs]]
 epoch_name = "2.0"
-start_height = 0
+start_height = $EPOCH_20_START
 
 [[burnchain.epochs]]
 epoch_name = "2.05"
-start_height = 1
+start_height = $EPOCH_205_START
 
 [[burnchain.epochs]]
 epoch_name = "2.1"
