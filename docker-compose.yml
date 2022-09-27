@@ -61,7 +61,6 @@ services:
         tar -C /stacks-blockchain-data -czf /init-data/stacks-blockchain-data.tar.gz ./
 
   bitcoind:
-    profiles: ["default", "bitcoind-only"]
     build:
       context: .
       dockerfile: Dockerfile.btc
@@ -86,7 +85,6 @@ services:
       timeout: 30s
 
   bitcoind-miner:
-    profiles: ["default"]
     build:
       context: .
       dockerfile: Dockerfile.btc
@@ -116,7 +114,6 @@ services:
         done
 
   stacks-node:
-    profiles: ["default"]
     build:
       context: .
       dockerfile: Dockerfile.stacks-node
@@ -158,7 +155,6 @@ services:
         exec stacks-node start --config=config.toml
 
   postgres:
-    profiles: ["default"]
     image: "postgres:14"
     ports:
       - "5490:5490"
@@ -171,7 +167,6 @@ services:
       PGPORT: 5490
 
   stacks-api:
-    profiles: ["default"]
     build:
       context: .
       dockerfile: Dockerfile.stacks-api
