@@ -1,5 +1,13 @@
 version: "3.9"
 
+x-common-vars:
+  - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
+  - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c
+  - &BITCOIN_PEER_PORT 18444
+  - &BITCOIN_RPC_PORT 18443
+  - &BITCOIN_RPC_USER krypton
+  - &BITCOIN_RPC_PASS krypton
+
 services:
 
   snapshot-init:
@@ -18,11 +26,13 @@ services:
     environment:
       DATA_DIR: /stacks-blockchain-data
       BITCOIN_PEER_HOST: localhost
-      BITCOIN_PEER_PORT: $BITCOIN_PEER_PORT
-      BITCOIN_RPC_PORT: $BITCOIN_RPC_PORT
-      BITCOIN_RPC_USER: $BITCOIN_RPC_USER
-      BITCOIN_RPC_PASS: $BITCOIN_RPC_PASS
-      MINER_SEED: $MINER_SEED
+      BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
+      BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: *BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
+      MINER_SEED: *MINER_SEED
+      BTC_ADDR: *BTC_ADDR
+      INIT_BLOCKS: 101
     entrypoint:
       - /bin/bash
       - -c
@@ -32,8 +42,8 @@ services:
         bitcoind &
         BTCD_PID=$$!
         bitcoin-cli -rpcwait getmininginfo
-        bitcoin-cli importaddress $BTC_ADDR "" false
-        bitcoin-cli generatetoaddress $INIT_BLOCKS $BTC_ADDR
+        bitcoin-cli importaddress $$BTC_ADDR "" false
+        bitcoin-cli generatetoaddress $$INIT_BLOCKS $$BTC_ADDR
 
         rm -rf /stacks-blockchain-data/*
         envsubst < config.toml.in > config.toml
@@ -42,8 +52,8 @@ services:
 
         while true; do
           HEIGHT=$$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-          if [ "$$HEIGHT" = "$INIT_BLOCKS" ]; then
-            echo "Stacks node caught up to block $INIT_BLOCKS"
+          if [ "$$HEIGHT" = "$$INIT_BLOCKS" ]; then
+            echo "Stacks node caught up to block $$INIT_BLOCKS"
             break
           else
             echo "Stacks node not ready, at block: $$HEIGHT"
@@ -95,18 +105,20 @@ services:
     depends_on:
       bitcoind:
         condition: service_healthy
+    environment:
+      BTC_ADDR: *BTC_ADDR
     entrypoint:
       - /bin/bash
       - -c
       - |
         set -e
-        bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $BTC_ADDR
+        bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $$BTC_ADDR
         while true; do
           TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
           CONFS=$$(echo "$$TX" | jq '.[].confirmations')
           if [ "$$CONFS" = "0" ]; then
             echo "Detected Stacks mining mempool tx, mining btc block..."
-            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$BTC_ADDR"
+            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$$BTC_ADDR"
           else
             echo "No Stacks mining tx detected"
           fi
@@ -134,11 +146,11 @@ services:
       DATA_DIR: /stacks-blockchain-data
       STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
-      BITCOIN_PEER_PORT: $BITCOIN_PEER_PORT
-      BITCOIN_RPC_PORT: $BITCOIN_RPC_PORT
-      BITCOIN_RPC_USER: $BITCOIN_RPC_USER
-      BITCOIN_RPC_PASS: $BITCOIN_RPC_PASS
-      MINER_SEED: $MINER_SEED
+      BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
+      BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: *BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
+      MINER_SEED: *MINER_SEED
     # healthcheck:
     #   test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
     #   timeout: 60s
