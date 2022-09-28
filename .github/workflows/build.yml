@@ -71,8 +71,8 @@ jobs:
           target: aarch64-unknown-linux-gnu
       - name: Build Stacks node - linux-x86_64
         run: |
-          mkdir /stacks-linux-x86_64
-          cd /stacks-linux-x86_64
+          mkdir ~/stacks-linux-x86_64
+          cd ~/stacks-linux-x86_64
           git init
           git remote add origin https://github.com/stacks-network/stacks-blockchain.git
           git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
