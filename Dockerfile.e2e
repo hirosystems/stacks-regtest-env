@@ -12,7 +12,7 @@ RUN git init && \
     git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT" && \
     git reset --hard FETCH_HEAD
 
-RUN cargo build --package stacks-node --bin stacks-node --release
+RUN CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
 
 FROM debian:bullseye-backports
 
@@ -38,6 +38,8 @@ COPY ./stacks-krypton-miner.toml /root/config.toml.in
 WORKDIR /root
 
 SHELL ["/bin/bash", "-ce"]
+
+# TODO: combine chainstate directories /stacks-blockchain-data and 
 
 # Bootstrap chainstates
 RUN <<EOF
@@ -79,7 +81,7 @@ cat > run.sh <<'EOM'
   stacks-node start --config=config.toml &
   STACKS_PID=$!
 
-  start_miner(){
+  function start_miner() {
     bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
     while true; do
       TX=$(bitcoin-cli listtransactions '*' 1 0 true)
@@ -93,8 +95,19 @@ cat > run.sh <<'EOM'
   }
   start_miner &
 
-  wait $STACKS_PID
-  wait $BTCD_PID
+  function cleanup() {
+    echo "Exiting, signal: $1"
+    kill $STACKS_PID 2>/dev/null && echo "Stacks exiting.."
+    wait $STACKS_PID 2>/dev/null && echo "Stacks exited"
+    kill $BTCD_PID 2>/dev/null && echo "Bitcoind exiting.."
+    wait $BTCD_PID 2>/dev/null && echo "Bitcoind exited"
+  }
+  trap "cleanup SIGTERM" SIGTERM
+  trap "cleanup SIGINT" SIGINT
+  trap "cleanup SIGHUP" SIGHUP
+  trap "cleanup EXIT" EXIT
+
+  wait
 EOM
 chmod +x run.sh
 EOF
