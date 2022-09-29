@@ -1,5 +1,6 @@
-# stacks-regtest-env
+# Stacks Regtest Environment
 
+Easily run a Stacks node in Kypton mode with a Bitcoind regtest instance and Stacks API
 
 ## Run with Docker Compose
 

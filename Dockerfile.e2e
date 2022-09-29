@@ -46,7 +46,7 @@ ENV BITCOIN_PEER_PORT=18444
 ENV BITCOIN_RPC_PORT=18443
 ENV BITCOIN_RPC_USER=krypton
 ENV BITCOIN_RPC_PASS=krypton
-ENV MINE_INTERVAL=1s
+ENV MINE_INTERVAL=0.5s
 
 COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in

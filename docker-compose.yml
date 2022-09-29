@@ -107,6 +107,7 @@ services:
         condition: service_healthy
     environment:
       BTC_ADDR: *BTC_ADDR
+      MINE_INTERVAL: ${MINE_INTERVAL:-0.5s}
     entrypoint:
       - /bin/bash
       - -c
@@ -122,7 +123,7 @@ services:
           else
             echo "No Stacks mining tx detected"
           fi
-          sleep $MINE_INTERVAL
+          sleep $$MINE_INTERVAL
         done
 
   stacks-node:
