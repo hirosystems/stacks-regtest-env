@@ -87,6 +87,8 @@ jobs:
           git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
           git reset --hard FETCH_HEAD
       - name: Rust cache
+        with:
+          workspaces: "stacks-blockchain-repo"
         uses: Swatinem/rust-cache@v2
       - name: Cargo fetch
         run: |
@@ -99,21 +101,17 @@ jobs:
           CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
           CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
           AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
-          CARGO_TARGET_DIR=../target \
           cargo build --package stacks-node --bin stacks-node --release --target aarch64-unknown-linux-gnu
       - name: Build Stacks node - linux-x86_64
         run: |
           cd stacks-blockchain-repo
-          CARGO_TARGET_DIR=../target \
           cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu
       - name: Move Stacks node binaries
         run: |
           mkdir -p stacks-blockchain-binaries/x86_64-unknown-linux-gnu stacks-blockchain-binaries/aarch64-unknown-linux-gnu
-          cp target/x86_64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/x86_64-unknown-linux-gnu
-          cp target/aarch64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          cp stacks-blockchain-repo/target/x86_64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/x86_64-unknown-linux-gnu
+          cp stacks-blockchain-repo/target/aarch64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/aarch64-unknown-linux-gnu
           echo "stacks-blockchain-repo" >> ".dockerignore"
-          echo "target" >> ".dockerignore"
-          cat ".dockerignore"
       - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
