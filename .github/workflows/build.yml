@@ -69,14 +69,32 @@ jobs:
         with:
           toolchain: stable
           target: aarch64-unknown-linux-gnu
-      - name: Build Stacks node - linux-x86_64
+      - name: Install compilation tooling
         run: |
-          mkdir ~/stacks-linux-x86_64
-          cd ~/stacks-linux-x86_64
+          sudo apt-get update
+          sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu
+      - name: Fetch Stacks node repo
+        run: |
+          mkdir ~/stacks-blockchain
+          cd ~/stacks-blockchain
           git init
           git remote add origin https://github.com/stacks-network/stacks-blockchain.git
           git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
           git reset --hard FETCH_HEAD
+      - name: Build Stacks node - linux-aarch64
+        run: |
+          cd ~/stacks-blockchain
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+          CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
+          CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
+          AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
+          CC=aarch64-linux-gnu-gcc \
+          TARGET_ARCH=arm64 \
+          cargo build --package stacks-node --bin stacks-node --release --target aarch64-unknown-linux-gnu
+          ls -al target
+      - name: Build Stacks node - linux-x86_64
+        run: |
+          cd ~/stacks-blockchain
           cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu
           ls -al target
 
