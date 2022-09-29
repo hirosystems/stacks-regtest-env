@@ -6,13 +6,43 @@ ARG GIT_COMMIT=0efa50283bb7cd77f10a9ad8066f9e782a1de067
 
 RUN echo "Building stacks-node from commit: https://github.com/stacks-network/stacks-blockchain/commit/$GIT_COMMIT"
 
-WORKDIR /stacks
-RUN git init && \
-    git remote add origin https://github.com/stacks-network/stacks-blockchain.git && \
-    git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT" && \
-    git reset --hard FETCH_HEAD
+COPY *stacks-blockchain-binaries /stacks-blockchain-binaries
 
-RUN CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
+WORKDIR /stacks
+
+SHELL ["/bin/bash", "-ce"]
+
+ARG TARGETPLATFORM
+RUN echo "Dockerfile building for $TARGETPLATFORM"
+RUN ls -alR /stacks-blockchain-binaries/
+
+RUN <<EOF
+  if [ "$TARGETPLATFORM" = "linux/arm64" ]; then
+    echo "Building for arm64..."
+    if [ -f "/stacks-blockchain-binaries/aarch64-unknown-linux-gnu/release/stacks-node" ]; then
+      mkdir -p /stacks/target/release/
+      mv "/stacks-blockchain-binaries/aarch64-unknown-linux-gnu/release/stacks-node" /stacks/target/release/stacks-node
+      exit 0
+    fi
+    echo "No prebuild binaries for $TARGETPLATFORM"
+  elif [ "$TARGETPLATFORM" = "linux/amd64" ]; then
+    echo "Building for x64..."
+    if [ -f "/stacks-blockchain-binaries/x86_64-unknown-linux-gnu/release/stacks-node" ]; then
+      mkdir -p /stacks/target/release/
+      mv "/stacks-blockchain-binaries/x86_64-unknown-linux-gnu/release/stacks-node" /stacks/target/release/stacks-node
+      exit 0
+    fi
+    echo "No prebuild binaries for $TARGETPLATFORM"
+  else
+    echo "Unsupported platform: $TARGETPLATFORM"
+    exit 1
+  fi
+  git init
+  git remote add origin https://github.com/stacks-network/stacks-blockchain.git
+  git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT"
+  git reset --hard FETCH_HEAD
+  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
+EOF
 
 FROM debian:bullseye-backports
 
@@ -37,11 +67,10 @@ COPY ./stacks-krypton-miner.toml /root/config.toml.in
 
 WORKDIR /root
 
-SHELL ["/bin/bash", "-ce"]
-
 # TODO: combine chainstate directories /stacks-blockchain-data and 
 
 # Bootstrap chainstates
+SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
   mkdir /bitcoin-data
   bitcoind &
@@ -112,4 +141,5 @@ EOM
 chmod +x run.sh
 EOF
 
+STOPSIGNAL SIGTERM
 CMD ["/root/run.sh"]

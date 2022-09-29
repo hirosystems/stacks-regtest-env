@@ -54,6 +54,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -82,9 +86,6 @@ jobs:
           git remote add origin https://github.com/stacks-network/stacks-blockchain.git
           git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
           git reset --hard FETCH_HEAD
-      - name: Build Docker image - linux-aarch54
-        run: |
-          docker build --platform linux/arm64 --tag zone117x/stacks-api-e2e:latest-arm64 -f Dockerfile.e2e .
       - name: Build Stacks node - linux-aarch64
         run: |
           cd stacks-blockchain-repo
@@ -101,6 +102,19 @@ jobs:
           cd stacks-blockchain-repo
           cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu
           ls -al target
+      - name: Move Stacks node binaries
+        run: |
+          mv stacks-blockchain-repo/target stacks-blockchain-binaries
+      - name: Build Docker images
+        uses: docker/build-push-action@v3
+        with:
+          file: Dockerfile.e2e
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: zone117x/stacks-api-e2e:latest
+          cache-from: type=registry,ref=zone117x/stacks-api-e2e:latest
+          cache-to: type=inline
 
   build_linux-x64-glibc:
     if: ${{ false }} # disabled
