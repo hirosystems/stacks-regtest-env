@@ -50,7 +50,7 @@ jobs:
   #   docker manifest push zone117x/stacks-api-e2e:latest
 
   docker-fast:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
