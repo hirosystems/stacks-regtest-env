@@ -8,30 +8,70 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.10.1
+        uses: styfle/cancel-workflow-action@0.10.0
         with:
           access_token: ${{ github.token }}
 
-  docker:
-    runs-on: ubuntu-latest
+  build-push-docker:
+    runs-on: ubuntu-20.04
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v3
-      -
-        name: Set up QEMU
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      -
-        name: Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
+      - name: Install Rust - linux-x86_64
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+      - name: Install Rust - linux-aarch64
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-unknown-linux-gnu
+      - name: Install compilation tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu
+      - name: Fetch Stacks node repo
+        run: |
+          echo "$PWD"
+          mkdir stacks-blockchain-repo
+          cd stacks-blockchain-repo
+          git init
+          git remote add origin https://github.com/stacks-network/stacks-blockchain.git
+          git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
+          git reset --hard FETCH_HEAD
+      - name: Rust cache
+        with:
+          workspaces: "stacks-blockchain-repo"
+        uses: Swatinem/rust-cache@v2
+      - name: Cargo fetch
+        run: |
+          cd stacks-blockchain-repo
+          cargo fetch --manifest-path testnet/stacks-node/Cargo.toml --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
+      - name: Build Stacks node
+        run: |
+          cd stacks-blockchain-repo
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+          CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
+          CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
+          AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
+          cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
+      - name: Move Stacks node binaries
+        run: |
+          mkdir -p stacks-blockchain-binaries/x86_64-unknown-linux-gnu stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          cp stacks-blockchain-repo/target/x86_64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/x86_64-unknown-linux-gnu
+          cp stacks-blockchain-repo/target/aarch64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          echo "stacks-blockchain-repo" >> ".dockerignore"
+      - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
           file: Dockerfile.e2e
@@ -41,40 +81,3 @@ jobs:
           tags: zone117x/stacks-api-e2e:latest
           cache-from: type=registry,ref=zone117x/stacks-api-e2e:latest
           cache-to: type=inline
-
-  build_linux-x64-glibc:
-    if: ${{ false }} # disabled
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-      - name: npm i
-        run: npm i
-      - name: Build
-        run: npm run build:cargo
-      - uses: actions/upload-artifact@v2
-        with:
-          name: linux-x64-glibc
-          path: native/linux-x64-glibc.node
-          if-no-files-found: error
-
-  build_linux-arm64-glibc:
-    if: ${{ false }} # disabled
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          target: aarch64-unknown-linux-gnu
-      - name: Install cross compile deps
-        run: |
-          sudo apt-get update && sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu qemu-user
-      - name: Configure linux-arm64 cross compile
-        run: |
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER="qemu-aarch64 -L /usr/aarch64-linux-gnu"' >> $GITHUB_ENV
-          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar" >> $GITHUB_ENV
-          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
-          echo "TARGET_ARCH=arm64" >> $GITHUB_ENV

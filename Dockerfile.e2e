@@ -3,16 +3,32 @@
 FROM rust:bullseye as builder
 
 ARG GIT_COMMIT=0efa50283bb7cd77f10a9ad8066f9e782a1de067
-
-RUN echo "Building stacks-node from commit: https://github.com/stacks-network/stacks-blockchain/commit/$GIT_COMMIT"
+ARG TARGETPLATFORM
 
 WORKDIR /stacks
-RUN git init && \
-    git remote add origin https://github.com/stacks-network/stacks-blockchain.git && \
-    git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT" && \
-    git reset --hard FETCH_HEAD
 
-RUN CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
+COPY *stacks-blockchain-binaries /stacks-blockchain-binaries
+
+SHELL ["/bin/bash", "-ce"]
+RUN <<EOF
+  STACKS_NODE_BIN_ARM64=/stacks-blockchain-binaries/aarch64-unknown-linux-gnu/stacks-node
+  STACKS_NODE_BIN_AMD64=/stacks-blockchain-binaries/x86_64-unknown-linux-gnu/stacks-node
+  if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ -f "$STACKS_NODE_BIN_ARM64" ]; then
+    echo "Using existing stacks-node binary: $STACKS_NODE_BIN_ARM64"
+    mkdir -p target/release && mv "$STACKS_NODE_BIN_ARM64" target/release/stacks-node
+    exit 0
+  elif [ "$TARGETPLATFORM" = "linux/amd64" ] && [ -f "$STACKS_NODE_BIN_AMD64" ]; then
+    echo "Using existing stacks-node binary: $STACKS_NODE_BIN_AMD64"
+    mkdir -p target/release && mv "$STACKS_NODE_BIN_AMD64" target/release/stacks-node
+    exit 0
+  fi
+  echo "Building stacks-node from commit: https://github.com/stacks-network/stacks-blockchain/commit/$GIT_COMMIT"
+  git init
+  git remote add origin https://github.com/stacks-network/stacks-blockchain.git
+  git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT"
+  git reset --hard FETCH_HEAD
+  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
+EOF
 
 FROM debian:bullseye-backports
 
@@ -37,11 +53,10 @@ COPY ./stacks-krypton-miner.toml /root/config.toml.in
 
 WORKDIR /root
 
-SHELL ["/bin/bash", "-ce"]
-
 # TODO: combine chainstate directories /stacks-blockchain-data and 
 
 # Bootstrap chainstates
+SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
   mkdir /bitcoin-data
   bitcoind &
@@ -112,4 +127,5 @@ EOM
 chmod +x run.sh
 EOF
 
+STOPSIGNAL SIGTERM
 CMD ["/root/run.sh"]
