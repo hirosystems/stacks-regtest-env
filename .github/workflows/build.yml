@@ -86,7 +86,12 @@ jobs:
           git remote add origin https://github.com/stacks-network/stacks-blockchain.git
           git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
           git reset --hard FETCH_HEAD
-      # TODO: run `cargo fetch` step before building, cache results
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+      - name: Cargo fetch
+        run: |
+          cd stacks-blockchain-repo
+          cargo fetch --manifest-path testnet/stacks-node/Cargo.toml --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
       - name: Build Stacks node - linux-aarch64
         run: |
           cd stacks-blockchain-repo
