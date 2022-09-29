@@ -14,7 +14,7 @@ jobs:
 
   docker:
     if: ${{ false }} # disabled
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       -
         name: Checkout
@@ -86,6 +86,7 @@ jobs:
           git remote add origin https://github.com/stacks-network/stacks-blockchain.git
           git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
           git reset --hard FETCH_HEAD
+      # TODO: run `cargo fetch` step before building, cache results
       - name: Build Stacks node - linux-aarch64
         run: |
           cd stacks-blockchain-repo
@@ -93,18 +94,21 @@ jobs:
           CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
           CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
           AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
-          CC=aarch64-linux-gnu-gcc \
-          TARGET_ARCH=arm64 \
+          CARGO_TARGET_DIR=../target \
           cargo build --package stacks-node --bin stacks-node --release --target aarch64-unknown-linux-gnu
-          ls -al target
       - name: Build Stacks node - linux-x86_64
         run: |
           cd stacks-blockchain-repo
+          CARGO_TARGET_DIR=../target \
           cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu
-          ls -al target
       - name: Move Stacks node binaries
         run: |
-          mv stacks-blockchain-repo/target stacks-blockchain-binaries
+          mkdir -p stacks-blockchain-binaries/x86_64-unknown-linux-gnu stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/x86_64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          echo "stacks-blockchain-repo" >> ".dockerignore"
+          echo "target" >> ".dockerignore"
+          cat ".dockerignore"
       - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
