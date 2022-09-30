@@ -74,6 +74,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.btc
+    depends_on:
+      - stacks-api
     ports:
       - "18443:18443"
       - "18444:18444"
@@ -89,22 +91,17 @@ services:
         rm -rf /bitcoin-data/*
         tar -xf /init-data/bitcoind.tar.gz -C /bitcoin-data
         bitcoind
-    healthcheck:
-      test: bitcoin-cli -rpcwait getmininginfo
-      interval: 100ms
-      timeout: 30s
 
   bitcoind-miner:
     build:
       context: .
       dockerfile: Dockerfile.btc
+    depends_on:
+      - stacks-node
     volumes:
       - ./bitcoind-miner.sh:/usr/bin/bitcoind-miner.sh
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - bitcoind:/bitcoin-data
-    depends_on:
-      bitcoind:
-        condition: service_healthy
     environment:
       BTC_ADDR: *BTC_ADDR
       MINE_INTERVAL: ${MINE_INTERVAL:-0.5s}
@@ -113,6 +110,8 @@ services:
       - -c
       - |
         set -e
+        trap 'kill 0' SIGTERM SIGINT
+        bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $$BTC_ADDR
         while true; do
           TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
@@ -123,7 +122,8 @@ services:
           else
             echo "No Stacks mining tx detected"
           fi
-          sleep $$MINE_INTERVAL
+          sleep $$MINE_INTERVAL &
+          wait || exit 0
         done
 
   stacks-node:
@@ -132,15 +132,15 @@ services:
       dockerfile: Dockerfile.stacks-node
       args:
         GIT_COMMIT: 0efa50283bb7cd77f10a9ad8066f9e782a1de067
+    depends_on:
+      - bitcoind
     ports:
       - "20443:20443"
     volumes:
       - ./stacks-krypton-miner.toml/:/root/config.toml.in
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - ./init-data:/init-data
       - stacks-data:/stacks-blockchain-data
-    depends_on:
-      bitcoind-miner:
-        condition: service_started
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
@@ -152,11 +152,6 @@ services:
       BITCOIN_RPC_USER: *BITCOIN_RPC_USER
       BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
       MINER_SEED: *MINER_SEED
-    # healthcheck:
-    #   test: curl --fail-with-body "http://localhost:20443/v2/info" || exit 1
-    #   timeout: 60s
-    #   interval: 300ms
-    #   retries: 1000000
     entrypoint:
       - /bin/bash
       - -c
@@ -165,6 +160,7 @@ services:
         rm -rf /stacks-blockchain-data/*
         tar -xf /init-data/stacks-blockchain-data.tar.gz -C /stacks-blockchain-data
         envsubst < config.toml.in > config.toml
+        bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config=config.toml
 
   postgres:
@@ -185,6 +181,8 @@ services:
       dockerfile: Dockerfile.stacks-api
       args:
         GIT_COMMIT: 97fbbd7fd7e42ed185b03246191d63d80d2dae9b
+    depends_on:
+      - postgres
     ports:
       - "3999:3999"
     expose:
