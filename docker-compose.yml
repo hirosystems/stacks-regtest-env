@@ -110,7 +110,8 @@ services:
       - -c
       - |
         set -e
-        trap 'kill 0' SIGTERM SIGINT
+        trap "exit" INT TERM
+        trap "kill 0" EXIT
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 $$BTC_ADDR
         while true; do
