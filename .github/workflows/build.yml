@@ -3,6 +3,9 @@ name: build
 on:
   push:
 
+env:
+  STACKS_BLOCKCHAIN_COMMIT: 0efa50283bb7cd77f10a9ad8066f9e782a1de067
+
 jobs:
   cancel-previous-runs:
     runs-on: ubuntu-latest
@@ -17,6 +20,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Cache stacks-node
+        id: cache-stacks-node
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-stacks-node
+        with:
+          path: stacks-blockchain-binaries
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -31,30 +42,35 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Install Rust - linux-x86_64
+        if: ${{ steps.cache-stacks-node.cache-hit != 'true' }}
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-unknown-linux-gnu
       - name: Install Rust - linux-aarch64
+        if: ${{ steps.cache-stacks-node.cache-hit != 'true' }}
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: aarch64-unknown-linux-gnu
       - name: Install compilation tooling
+        if: ${{ steps.cache-stacks-node.cache-hit != 'true' }}
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu
           version: 1.0
       - name: Fetch Stacks node repo
+        if: ${{ steps.cache-stacks-node.cache-hit != 'true' }}
         run: |
           echo "$PWD"
           mkdir stacks-blockchain-repo
           cd stacks-blockchain-repo
           git init
           git remote add origin https://github.com/stacks-network/stacks-blockchain.git
-          git -c protocol.version=2 fetch --depth=1 origin 0efa50283bb7cd77f10a9ad8066f9e782a1de067
+          git -c protocol.version=2 fetch --depth=1 origin $STACKS_BLOCKCHAIN_COMMIT
           git reset --hard FETCH_HEAD
       - name: Rust cache
+        if: ${{ steps.cache-stacks-node.cache-hit != 'true' }}
         with:
           workspaces: "stacks-blockchain-repo"
         uses: Swatinem/rust-cache@v2
@@ -63,6 +79,7 @@ jobs:
           cd stacks-blockchain-repo
           cargo fetch --manifest-path testnet/stacks-node/Cargo.toml --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
       - name: Build Stacks node
+        if: ${{ steps.cache-stacks-node.cache-hit != 'true' }}
         run: |
           cd stacks-blockchain-repo
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
@@ -70,12 +87,10 @@ jobs:
           CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
           AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
           cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
-      - name: Move Stacks node binaries
-        run: |
-          mkdir -p stacks-blockchain-binaries/x86_64-unknown-linux-gnu stacks-blockchain-binaries/aarch64-unknown-linux-gnu
-          cp stacks-blockchain-repo/target/x86_64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/x86_64-unknown-linux-gnu
-          cp stacks-blockchain-repo/target/aarch64-unknown-linux-gnu/release/stacks-node stacks-blockchain-binaries/aarch64-unknown-linux-gnu
-          echo "stacks-blockchain-repo" >> ".dockerignore"
+          mkdir -p ../stacks-blockchain-binaries/x86_64-unknown-linux-gnu ../stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release/stacks-node ../stacks-blockchain-binaries/x86_64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release/stacks-node ../stacks-blockchain-binaries/aarch64-unknown-linux-gnu
+          echo "stacks-blockchain-repo" >> "../.dockerignore"
       - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
