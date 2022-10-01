@@ -88,9 +88,10 @@ services:
       - -c
       - |
         set -e
-        rm -rf /chainstate/bitcoin-data/*
         mkdir -p /chainstate/bitcoin-data
-        tar -xf /init-data/bitcoind.tar.gz -C /chainstate/bitcoin-data
+        if [ -z "$$(ls -A /chainstate/bitcoin-data)" ]; then
+          tar -xf /init-data/bitcoind.tar.gz -C /chainstate/bitcoin-data
+        fi
         bitcoind
 
   bitcoind-miner:
@@ -158,9 +159,10 @@ services:
       - -c
       - |
         set -e
-        rm -rf /chainstate/stacks-blockchain-data/*
         mkdir -p /chainstate/stacks-blockchain-data
-        tar -xf /init-data/stacks-blockchain-data.tar.gz -C /chainstate/stacks-blockchain-data
+        if [ -z "$$(ls -A /chainstate/stacks-blockchain-data)" ]; then
+          tar -xf /init-data/stacks-blockchain-data.tar.gz -C /chainstate/stacks-blockchain-data
+        fi
         envsubst < config.toml.in > config.toml
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config=config.toml
