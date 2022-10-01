@@ -54,9 +54,10 @@ jobs:
           git reset --hard FETCH_HEAD
       - name: Rust cache
         if: steps.cache.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
         with:
           workspaces: "stacks-blockchain-repo"
-        uses: Swatinem/rust-cache@v2
+          shared-key: rust-cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Cargo fetch
         if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo
@@ -65,11 +66,13 @@ jobs:
       - name: Build Stacks node
         if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
         run: |
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-          CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
-          CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
-          AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
           cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
           mkdir -p ../bin/x86_64-unknown-linux-gnu ../bin/aarch64-unknown-linux-gnu
           cp target/x86_64-unknown-linux-gnu/release/stacks-node ../bin/x86_64-unknown-linux-gnu
@@ -77,6 +80,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: stacks-node-bin
+          if-no-files-found: error
           path: |
             bin/*/stacks-node
 
@@ -90,6 +94,12 @@ jobs:
         with:
           name: stacks-node-bin
           path: stacks-blockchain-binaries
+      - name: Process of downloaded artifacts
+        working-directory: stacks-blockchain-binaries
+        run: |
+          ls -R
+          chmod +x /x86_64-unknown-linux-gnu/stacks-node
+          chmod +x /aarch64-unknown-linux-gnu/stacks-node
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -103,9 +113,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: stacks-blockchain-binaries
       - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
