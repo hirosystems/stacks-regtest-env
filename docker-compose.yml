@@ -172,12 +172,13 @@ services:
     ports:
       - "5490:5490"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - chainstate:/chainstate
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: stacks_blockchain_api
       PGPORT: 5490
+      PGDATA: /chainstate/pg-data
 
   stacks-api:
     build:
