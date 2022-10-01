@@ -54,7 +54,7 @@ MINE_INTERVAL=2.5s docker compose up --build
   * Database name: `stacks_blockchain_api`
 
 
-_Note:_ preserving chainstate between environment restarts is not yet supported. Before re-starting the environment, clear data from previous sessions by running:
+_Note:_ To reset chainstate back to Stacks block height 0, ensure volumes are removed, e.g.:
 
 ```shell
 docker compose down --volumes --remove-orphans --timeout=1 --rmi=all

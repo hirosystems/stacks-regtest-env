@@ -38,7 +38,7 @@ COPY --from=ruimarinho/bitcoin-core:0.20.1 /opt/bitcoin-*/bin /usr/local/bin
 RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ENV DATA_DIR=/stacks-blockchain-data
+ENV DATA_DIR=/chainstate/stacks-blockchain-data
 ENV BTC_ADDR=miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
 ENV MINER_SEED=9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
 ENV BITCOIN_PEER_HOST=localhost
@@ -53,19 +53,17 @@ COPY ./stacks-krypton-miner.toml /root/config.toml.in
 
 WORKDIR /root
 
-# TODO: combine chainstate directories /stacks-blockchain-data and 
-
 # Bootstrap chainstates
 SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
-  mkdir /bitcoin-data
+  mkdir -p /chainstate/bitcoin-data
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
   bitcoin-cli importaddress $BTC_ADDR "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
-  mkdir /stacks-blockchain-data
+  mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
   stacks-node start --config=config.toml &
   STACKS_PID=$!

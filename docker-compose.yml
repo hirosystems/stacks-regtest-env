@@ -21,10 +21,9 @@ services:
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - ./stacks-krypton-miner.toml/:/root/config.toml.in
       - ./init-data:/init-data
-      - stacks-data:/stacks-blockchain-data
-      - bitcoind:/bitcoin-data
+      - chainstate:/chainstate
     environment:
-      DATA_DIR: /stacks-blockchain-data
+      DATA_DIR: /chainstate/stacks-blockchain-data
       BITCOIN_PEER_HOST: localhost
       BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
       BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
@@ -38,14 +37,15 @@ services:
       - -c
       - |
         set -e
-        rm -rf /bitcoin-data/*
+        rm -rf /chainstate/bitcoin-data/*
+        mkdir -p /chainstate/bitcoin-data
         bitcoind &
         BTCD_PID=$$!
         bitcoin-cli -rpcwait getmininginfo
         bitcoin-cli importaddress $$BTC_ADDR "" false
         bitcoin-cli generatetoaddress $$INIT_BLOCKS $$BTC_ADDR
 
-        rm -rf /stacks-blockchain-data/*
+        rm -rf /chainstate/stacks-blockchain-data/*
         envsubst < config.toml.in > config.toml
         stacks-node start --config=config.toml &
         STACKS_PID=$$!
@@ -67,8 +67,8 @@ services:
         bitcoin-cli stop
         wait $$BTCD_PID
 
-        tar -C /bitcoin-data -czf /init-data/bitcoind.tar.gz ./
-        tar -C /stacks-blockchain-data -czf /init-data/stacks-blockchain-data.tar.gz ./
+        tar -C /chainstate/bitcoin-data -czf /init-data/bitcoind.tar.gz ./
+        tar -C /chainstate/stacks-blockchain-data -czf /init-data/stacks-blockchain-data.tar.gz ./
 
   bitcoind:
     build:
@@ -82,14 +82,16 @@ services:
     volumes:
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - ./init-data:/init-data
-      - bitcoind:/bitcoin-data
+      - chainstate:/chainstate
     entrypoint:
       - /bin/bash
       - -c
       - |
         set -e
-        rm -rf /bitcoin-data/*
-        tar -xf /init-data/bitcoind.tar.gz -C /bitcoin-data
+        mkdir -p /chainstate/bitcoin-data
+        if [ -z "$$(ls -A /chainstate/bitcoin-data)" ]; then
+          tar -xf /init-data/bitcoind.tar.gz -C /chainstate/bitcoin-data
+        fi
         bitcoind
 
   bitcoind-miner:
@@ -101,7 +103,6 @@ services:
     volumes:
       - ./bitcoind-miner.sh:/usr/bin/bitcoind-miner.sh
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
-      - bitcoind:/bitcoin-data
     environment:
       BTC_ADDR: *BTC_ADDR
       MINE_INTERVAL: ${MINE_INTERVAL:-0.5s}
@@ -141,11 +142,11 @@ services:
       - ./stacks-krypton-miner.toml/:/root/config.toml.in
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
       - ./init-data:/init-data
-      - stacks-data:/stacks-blockchain-data
+      - chainstate:/chainstate
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
-      DATA_DIR: /stacks-blockchain-data
+      DATA_DIR: /chainstate/stacks-blockchain-data
       STACKS_EVENT_OBSERVER: stacks-api:3700
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
@@ -158,8 +159,10 @@ services:
       - -c
       - |
         set -e
-        rm -rf /stacks-blockchain-data/*
-        tar -xf /init-data/stacks-blockchain-data.tar.gz -C /stacks-blockchain-data
+        mkdir -p /chainstate/stacks-blockchain-data
+        if [ -z "$$(ls -A /chainstate/stacks-blockchain-data)" ]; then
+          tar -xf /init-data/stacks-blockchain-data.tar.gz -C /chainstate/stacks-blockchain-data
+        fi
         envsubst < config.toml.in > config.toml
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config=config.toml
@@ -169,12 +172,13 @@ services:
     ports:
       - "5490:5490"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - chainstate:/chainstate
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: stacks_blockchain_api
       PGPORT: 5490
+      PGDATA: /chainstate/pg-data
 
   stacks-api:
     build:
@@ -208,9 +212,8 @@ services:
       BTC_RPC_PORT: 18443
       BTC_RPC_USER: krypton
       BTC_RPC_PW: krypton
-      BTC_FAUCET_PK: 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
+      BTC_FAUCET_PK: *MINER_SEED
 
 volumes:
   pgdata:
-  bitcoind:
-  stacks-data:
+  chainstate:
