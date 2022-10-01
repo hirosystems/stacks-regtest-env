@@ -21,32 +21,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Cache stacks-node
-        id: cache-stacks-node
+        id: cache
         uses: actions/cache@v3
-        env:
-          cache-name: cache-stacks-node
         with:
           path: stacks-blockchain-binaries
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
+          key: ${{ runner.os }}-build-cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Install Rust - linux-x86_64
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-unknown-linux-gnu
       - name: Install Rust - linux-aarch64
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: aarch64-unknown-linux-gnu
       - name: Install compilation tooling
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu
       - name: Fetch Stacks node repo
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo
         run: |
           echo "$PWD"
@@ -55,17 +53,17 @@ jobs:
           git -c protocol.version=2 fetch --depth=1 origin $STACKS_BLOCKCHAIN_COMMIT
           git reset --hard FETCH_HEAD
       - name: Rust cache
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         with:
           workspaces: "stacks-blockchain-repo"
         uses: Swatinem/rust-cache@v2
       - name: Cargo fetch
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo
         run: |
           cargo fetch --manifest-path testnet/stacks-node/Cargo.toml --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
       - name: Build Stacks node
-        if: steps.cache-stacks-node.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo
         run: |
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
