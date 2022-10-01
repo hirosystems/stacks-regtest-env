@@ -33,7 +33,7 @@ public_ip_address = "1.1.1.1:1234"
 chain = "bitcoin"
 mode = "krypton"
 poll_time_secs = 1
-pox_2_activation = 4
+pox_2_activation = $STACKS_POX2_HEIGHT
 
 ### bitcoind-regtest connection info
 peer_host = "$BITCOIN_PEER_HOST"
@@ -58,7 +58,7 @@ start_height = 2
 
 [[burnchain.epochs]]
 epoch_name = "2.1"
-start_height = 3
+start_height = $STACKS_21_HEIGHT
 
 [[ustx_balance]]
 address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"
