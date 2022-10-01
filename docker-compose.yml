@@ -7,6 +7,9 @@ x-common-vars:
   - &BITCOIN_RPC_PORT 18443
   - &BITCOIN_RPC_USER krypton
   - &BITCOIN_RPC_PASS krypton
+  - &MINE_INTERVAL ${MINE_INTERVAL:-0.5s}
+  - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
+  - &STACKS_POX2_HEIGHT ${STACKS_POX2_HEIGHT:-104}
 
 services:
 
@@ -32,6 +35,8 @@ services:
       MINER_SEED: *MINER_SEED
       BTC_ADDR: *BTC_ADDR
       INIT_BLOCKS: 101
+      STACKS_21_HEIGHT: *STACKS_21_HEIGHT
+      STACKS_POX2_HEIGHT: *STACKS_POX2_HEIGHT
     entrypoint:
       - /bin/bash
       - -c
@@ -105,7 +110,7 @@ services:
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
     environment:
       BTC_ADDR: *BTC_ADDR
-      MINE_INTERVAL: ${MINE_INTERVAL:-0.5s}
+      MINE_INTERVAL: *MINE_INTERVAL
     entrypoint:
       - /bin/bash
       - -c
@@ -154,6 +159,8 @@ services:
       BITCOIN_RPC_USER: *BITCOIN_RPC_USER
       BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
       MINER_SEED: *MINER_SEED
+      STACKS_21_HEIGHT: *STACKS_21_HEIGHT
+      STACKS_POX2_HEIGHT: *STACKS_POX2_HEIGHT
     entrypoint:
       - /bin/bash
       - -c

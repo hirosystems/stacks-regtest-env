@@ -38,6 +38,15 @@ COPY --from=ruimarinho/bitcoin-core:0.20.1 /opt/bitcoin-*/bin /usr/local/bin
 RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+VOLUME /chainstate
+
+# Stacks-node RPC
+EXPOSE 20443
+# Bitcoind JSON-RPC
+EXPOSE 18443
+# Postgres
+EXPOSE 5490
+
 ENV DATA_DIR=/chainstate/stacks-blockchain-data
 ENV BTC_ADDR=miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
 ENV MINER_SEED=9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
@@ -46,7 +55,14 @@ ENV BITCOIN_PEER_PORT=18444
 ENV BITCOIN_RPC_PORT=18443
 ENV BITCOIN_RPC_USER=krypton
 ENV BITCOIN_RPC_PASS=krypton
+
 ENV MINE_INTERVAL=0.5s
+
+ARG STACKS_21_HEIGHT=103
+ENV STACKS_21_HEIGHT=$STACKS_21_HEIGHT
+
+ARG STACKS_POX2_HEIGHT=104
+ENV STACKS_POX2_HEIGHT=$STACKS_POX2_HEIGHT
 
 COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in
@@ -91,6 +107,9 @@ cat > run.sh <<'EOM'
   bitcoind &
   BTCD_PID=$!
 
+  bitcoin-cli -rpcwait getmininginfo
+
+  envsubst < config.toml.in > config.toml
   stacks-node start --config=config.toml &
   STACKS_PID=$!
 
@@ -125,5 +144,4 @@ EOM
 chmod +x run.sh
 EOF
 
-STOPSIGNAL SIGTERM
 CMD ["/root/run.sh"]
