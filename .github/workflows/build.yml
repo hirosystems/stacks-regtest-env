@@ -98,8 +98,8 @@ jobs:
         working-directory: stacks-blockchain-binaries
         run: |
           ls -R
-          chmod +x /x86_64-unknown-linux-gnu/stacks-node
-          chmod +x /aarch64-unknown-linux-gnu/stacks-node
+          chmod +x x86_64-unknown-linux-gnu/stacks-node
+          chmod +x aarch64-unknown-linux-gnu/stacks-node
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
