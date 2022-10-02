@@ -160,7 +160,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: zone117x/stacks-api-e2e:latest
+          tags: zone117x/stacks-api-e2e:stacks2.1-transition
           cache-from: type=registry,ref=zone117x/stacks-api-e2e:stacks2.1-transition
           cache-to: type=inline
           build-args: |
