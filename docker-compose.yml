@@ -10,7 +10,7 @@ x-common-vars:
   - &BITCOIN_RPC_PASS krypton
   - &MINE_INTERVAL ${MINE_INTERVAL:-0.5s}
   - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
-  - &STACKS_POX2_HEIGHT ${STACKS_POX2_HEIGHT:-104}
+  - &STACKS_POX2_HEIGHT ${STACKS_POX2_HEIGHT:-104} # 104 is is stacks_block=1, 106 is stacks_block=3
 
 services:
 
