@@ -1,6 +1,51 @@
 # Stacks Regtest Environment
 
-Easily run a Stacks node in Kypton mode with a Bitcoind regtest instance and Stacks API
+Easily run a Stacks node in Kypton mode with a Bitcoind regtest instance
+
+## Self-contained Stacks 2.1 image
+
+This repo publishes a Docker image that contains a Stacks 2.1 node running in Krypton mode (local testnet). It bundles a `bitcoind` regtest instance and an auto-mining script.
+
+The image can be ran as a drop-in replacement for a Stacks node running in `mocknet` mode, but with the benefits of full burnchain and miner capabilities such as:
+  * PoX reward slot registration and payout events
+  * Mempool events
+  * Microblock events
+
+#### Usage examples
+
+Run a Stacks node, mining blocks on a 2.5 second interval, with the RPC port 20443 exposed (https://localhost:20443/v2/info):
+
+```shell
+docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" zone117x/stacks-api-e2e
+
+```
+
+An event observer can be registered using the `STACKS_EVENT_OBSERVER` environnment variable. For example, assuming the observer is running on the host machine on port 3700:
+```shell
+docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" -e "STACKS_EVENT_OBSERVER=host.docker.internal:3700" zone117x/stacks-api-e2e
+```
+
+
+In addition, the image has several tags providing different Stacks bootstrapping sequence configs:
+  * The default tag `latest` starts directly in epoche 2.1 with PoX-2 activated
+  * Tag `stacks2.1-transition` starts in epoche 2.0, then transitions to epoche 2.1 after ~15 blocks, then activates PoX-2 after another ~15 blocks
+
+
+It's possible to build images with custom bootstrapping sequences by specifying the build args:
+* `STACKS_21_HEIGHT` - the burnblock height at which epoch 2.1 is activated
+* `STACKS_POX2_HEIGHT` - the burnblock height at which PoX-2 is activated
+
+Note that the first Stacks block will be mined at burnblock height 104. 
+So, for example, if you want epoch 2.1 to activate at Stacks block 10, and PoX-2 at Stacks block 20, then specify `STACKS_21_HEIGHT=114` and `STACKS_POX2_HEIGHT=124`:
+```shell
+# clone repo
+git clone https://github.com/zone117x/stacks-regtest-env.git
+cd stacks-regtest-env
+# build
+docker build -t my_image -f Dockerfile.e2e --build-arg "STACKS_21_HEIGHT=114" --build-arg "STACKS_POX2_HEIGHT=124" .
+# run
+docker run -p "20443:20443" -e "MINE_INTERVAL=5s" my_image
+```
 
 ## Run with Docker Compose
 
