@@ -100,6 +100,18 @@ jobs:
           ls -R
           chmod +x x86_64-unknown-linux-gnu/stacks-node
           chmod +x aarch64-unknown-linux-gnu/stacks-node
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: zone117x/stacks-api-e2e
+          tags: |
+            type=raw,value=stacks2.1
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -120,9 +132,13 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: zone117x/stacks-api-e2e:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=zone117x/stacks-api-e2e:latest
           cache-to: type=inline
+          build-args: |
+            STACKS_21_HEIGHT=3
+            STACKS_POX2_HEIGHT=4
 
   build-push-stacks2_1-transition-docker:
     needs: build-stacks-node
@@ -140,6 +156,20 @@ jobs:
           ls -R
           chmod +x x86_64-unknown-linux-gnu/stacks-node
           chmod +x aarch64-unknown-linux-gnu/stacks-node
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: zone117x/stacks-api-e2e
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=stacks2.1-transition
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -160,7 +190,8 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: zone117x/stacks-api-e2e:stacks2.1-transition
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=zone117x/stacks-api-e2e:stacks2.1-transition
           cache-to: type=inline
           build-args: |
