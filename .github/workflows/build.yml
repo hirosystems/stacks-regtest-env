@@ -106,6 +106,7 @@ jobs:
         with:
           images: zone117x/stacks-api-e2e
           tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=stacks2.1
             type=ref,event=branch,prefix=stacks2.1-
             type=ref,event=pr,prefix=stacks2.1-
