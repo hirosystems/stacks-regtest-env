@@ -34,7 +34,7 @@ EOF
 FROM debian:bullseye-backports
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
-COPY --from=ruimarinho/bitcoin-core:0.20.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
@@ -79,6 +79,7 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
+  bitcoin-cli createwallet ""
   bitcoin-cli importaddress $BTC_ADDR "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
