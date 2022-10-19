@@ -48,6 +48,7 @@ services:
         bitcoind &
         BTCD_PID=$$!
         bitcoin-cli -rpcwait getmininginfo
+        bitcoin-cli createwallet ""
         bitcoin-cli importaddress $$BTC_ADDR "" false
         bitcoin-cli generatetoaddress $$INIT_BLOCKS $$BTC_ADDR
 

@@ -18,7 +18,7 @@ FROM debian:bullseye-backports
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
 
-COPY --from=ruimarinho/bitcoin-core:0.20.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
 
 RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
