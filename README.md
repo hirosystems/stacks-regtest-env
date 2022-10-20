@@ -78,7 +78,7 @@ MINE_INTERVAL=2.5s docker compose up --build
 
 ###### Bitcoind node in regtest mode
   * JSON-RPC interface available at http://localhost:18443
-  * RPC auth username and password are both `krypton`
+  * RPC auth username and password are both `btc`
   * tBTC is available from the miner account:
     * Address: `miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT`
     * Private key: `9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201`
