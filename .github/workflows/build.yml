@@ -107,7 +107,8 @@ jobs:
           images: zone117x/stacks-api-e2e
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=stacks2.1
+            type=raw,value=stacks2.1,enable={{is_default_branch}}
+            type=raw,value=stacks2.1-{{branch}}-{{sha}}
             type=ref,event=branch,prefix=stacks2.1-
             type=ref,event=pr,prefix=stacks2.1-
             type=semver,pattern={{version}},prefix=stacks2.1-
@@ -165,7 +166,8 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=stacks2.1-transition
+            type=raw,value=stacks2.1-transition,enable={{is_default_branch}}
+            type=raw,value=stacks2.1-transition-{{branch}}-{{sha}}
             type=ref,event=branch,prefix=stacks2.1-transition-
             type=ref,event=pr,prefix=stacks2.1-transition-
             type=semver,pattern={{version}},prefix=stacks2.1-transition-
