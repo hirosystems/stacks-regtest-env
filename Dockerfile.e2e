@@ -2,7 +2,7 @@
 
 FROM rust:bullseye as builder
 
-ARG GIT_COMMIT=238c9168b28fec5c80f4c498ea7ddfab97e90f14
+ARG GIT_COMMIT=fbe190ca935bd35af43afce7aab9eebfbd9b6175
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND noninteractive
 
