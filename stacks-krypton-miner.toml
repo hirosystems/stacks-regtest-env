@@ -10,8 +10,9 @@ local_peer_seed = "$MINER_SEED"
 miner = true
 use_test_genesis_chainstate = true
 pox_sync_sample_secs = 0
+wait_time_for_blocks = 0
 wait_time_for_microblocks = 50
-microblock_frequency = 5000
+microblock_frequency = 1000
 # mine_microblocks = true
 # max_microblocks = 10
 
