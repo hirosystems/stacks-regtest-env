@@ -26,6 +26,16 @@ docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" -e "STACKS_EVENT_OBSERVER=ho
 ```
 
 
+A Stacks 2.1 `coinbase-alt-recipient` reward address can be configured using the `REWARD_RECIPIENT` environment variable. 
+This configures the Stacks node `[miner.block_reward_recipient]` toml config value. 
+If not specified, regular `coinbase` transactions will be mined. 
+Note that the address will receive STX rewards 100 blocks _after_ Epoch 2.1 is activated. 
+Usage example:
+```shell
+docker run -p "20443:20443" -e "REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN" zone117x/stacks-api-e2e
+```
+
+
 In addition, the image has several tags providing different Stacks bootstrapping sequence configs:
   * The default tag `latest` starts directly in epoche 2.1 with PoX-2 activated
   * Tag `stacks2.1-transition` starts in epoche 2.0, then transitions to epoche 2.1 after ~15 blocks, then activates PoX-2 after another ~15 blocks
@@ -72,6 +82,15 @@ docker compose up --build
 The block mining interval defaults to 500ms. This can be configured with the `MINE_INTERVAL` environment variable, for example:
 ```shell
 MINE_INTERVAL=2.5s docker compose up --build
+```
+
+The Stacks 2.1 `coinbase-alt-recipient` reward address can be configured using the `REWARD_RECIPIENT` environment variable. 
+This configures the Stacks node `[miner.block_reward_recipient]` toml config value. 
+If not specified, regular `coinbase` transactions will be mined. 
+Note that the address will receive STX rewards 100 blocks _after_ Epoch 2.1 is activated. 
+Usage example:
+```shell
+REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN MINE_INTERVAL=2.5s docker compose up --build
 ```
 
 #### The following services are created

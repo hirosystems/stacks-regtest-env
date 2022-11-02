@@ -19,7 +19,7 @@ microblock_frequency = 1000
 [miner]
 first_attempt_time_ms = 5000
 subsequent_attempt_time_ms = 5000
-#block_reward_recipient = "ST9V4MGBMGHX0WR3MG6JA53HNKMJ2HF9VWRQNTKR"
+$REWARD_RECIPIENT_CONF
 
 [connection_options]
 # inv_sync_interval = 10

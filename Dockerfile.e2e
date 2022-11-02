@@ -2,7 +2,7 @@
 
 FROM rust:bullseye as builder
 
-ARG GIT_COMMIT=5ba2642d2f31d53349cd68acb250dc2594ad34fd
+ARG GIT_COMMIT=171caa4a622666cc3fe70fd0b2bfcc161eb7743f
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -67,6 +67,11 @@ ENV STACKS_21_HEIGHT=$STACKS_21_HEIGHT
 ARG STACKS_POX2_HEIGHT=104
 ENV STACKS_POX2_HEIGHT=$STACKS_POX2_HEIGHT
 
+# priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
+# ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
+ARG REWARD_RECIPIENT
+ENV REWARD_RECIPIENT=$REWARD_RECIPIENT
+
 COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in
 
@@ -75,6 +80,10 @@ WORKDIR /root
 # Bootstrap chainstates
 SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
+  if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
+    export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
+  fi
+
   mkdir -p /chainstate/bitcoin-data
   bitcoind &
   BTCD_PID=$!
@@ -108,6 +117,10 @@ EOF
 RUN <<EOF
 cat > run.sh <<'EOM'
 #!/bin/bash -e
+  if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
+    export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
+  fi
+
   bitcoind &
   BTCD_PID=$!
 
