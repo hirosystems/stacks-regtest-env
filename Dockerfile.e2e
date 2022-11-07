@@ -40,6 +40,9 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Install NodeJS
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && apt-get install -y nodejs
+
 VOLUME /chainstate
 
 # Stacks-node RPC
@@ -61,11 +64,20 @@ ENV BITCOIN_RPC_PASS=btc
 ARG MINE_INTERVAL=5s
 ENV MINE_INTERVAL=$MINE_INTERVAL
 
-ARG STACKS_21_HEIGHT=103
+ARG STACKS_20_HEIGHT=104
+ENV STACKS_20_HEIGHT=$STACKS_20_HEIGHT
+
+ARG STACKS_2_05_HEIGHT=106
+ENV STACKS_2_05_HEIGHT=$STACKS_2_05_HEIGHT
+
+ARG STACKS_21_HEIGHT=107
 ENV STACKS_21_HEIGHT=$STACKS_21_HEIGHT
 
-ARG STACKS_POX2_HEIGHT=104
+ARG STACKS_POX2_HEIGHT=107
 ENV STACKS_POX2_HEIGHT=$STACKS_POX2_HEIGHT
+
+ARG STACKS_LOG_DEBUG=0
+ENV STACKS_LOG_DEBUG=$STACKS_LOG_DEBUG
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
@@ -74,8 +86,11 @@ ENV REWARD_RECIPIENT=$REWARD_RECIPIENT
 
 COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in
+COPY ./event-observer.js /root/event-observer.js
 
 WORKDIR /root
+
+RUN npm init -y && npm install stacks-encoding-native-js@0.2.0-alpha.0
 
 # Bootstrap chainstates
 SHELL ["/bin/bash", "-ce"]
@@ -91,6 +106,9 @@ RUN <<EOF
   bitcoin-cli createwallet ""
   bitcoin-cli importaddress $BTC_ADDR "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
+
+  node event-observer.js &
+  EVENT_OBSERVER_PID=$!
 
   mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
@@ -109,6 +127,9 @@ RUN <<EOF
   kill $STACKS_PID
   wait $STACKS_PID
 
+  kill $EVENT_OBSERVER_PID
+  # wait $EVENT_OBSERVER_PID
+
   bitcoin-cli stop
   wait $BTCD_PID
 EOF
@@ -125,6 +146,9 @@ cat > run.sh <<'EOM'
   BTCD_PID=$!
 
   bitcoin-cli -rpcwait getmininginfo
+
+  node event-observer.js &
+  EVENT_OBSERVER_PID=$!
 
   envsubst < config.toml.in > config.toml
   stacks-node start --config=config.toml &
@@ -148,6 +172,8 @@ cat > run.sh <<'EOM'
     echo "Exiting, signal: $1"
     kill $STACKS_PID 2>/dev/null && echo "Stacks exiting.."
     wait $STACKS_PID 2>/dev/null && echo "Stacks exited"
+    kill $EVENT_OBSERVER_PID 2>/dev/null && echo "Event-observer exiting.."
+    wait $EVENT_OBSERVER_PID 2>/dev/null && echo "Event-observer exited"
     kill $BTCD_PID 2>/dev/null && echo "Bitcoind exiting.."
     wait $BTCD_PID 2>/dev/null && echo "Bitcoind exited"
   }
