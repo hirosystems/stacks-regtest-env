@@ -9,7 +9,7 @@ local_peer_seed = "$MINER_SEED"
 
 miner = true
 use_test_genesis_chainstate = true
-pox_sync_sample_secs = 0
+pox_sync_sample_secs = 2
 wait_time_for_blocks = 0
 wait_time_for_microblocks = 50
 microblock_frequency = 1000
@@ -22,7 +22,7 @@ retry_count = 255
 events_keys = ["*"]
 
 [miner]
-first_attempt_time_ms = 5000
+first_attempt_time_ms = 30000
 subsequent_attempt_time_ms = 5000
 $REWARD_RECIPIENT_CONF
 

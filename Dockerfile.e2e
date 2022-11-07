@@ -2,7 +2,7 @@
 
 FROM rust:bullseye as builder
 
-ARG GIT_COMMIT=fe314a0b6650ecfa138e15c7ed4014fa829037ef
+ARG GIT_COMMIT=729c60eeb15daa060046cc61ccee2d1e3a6c6aa3
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -43,6 +43,10 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # Install NodeJS
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && apt-get install -y nodejs
 
+WORKDIR /root
+
+RUN npm init -y && npm install stacks-encoding-native-js@0.2.0-alpha.0
+
 VOLUME /chainstate
 
 # Stacks-node RPC
@@ -64,13 +68,13 @@ ENV BITCOIN_RPC_PASS=btc
 ARG MINE_INTERVAL=5s
 ENV MINE_INTERVAL=$MINE_INTERVAL
 
-ARG STACKS_20_HEIGHT=104
+ARG STACKS_20_HEIGHT=103
 ENV STACKS_20_HEIGHT=$STACKS_20_HEIGHT
 
-ARG STACKS_2_05_HEIGHT=106
+ARG STACKS_2_05_HEIGHT=104
 ENV STACKS_2_05_HEIGHT=$STACKS_2_05_HEIGHT
 
-ARG STACKS_21_HEIGHT=107
+ARG STACKS_21_HEIGHT=105
 ENV STACKS_21_HEIGHT=$STACKS_21_HEIGHT
 
 ARG STACKS_POX2_HEIGHT=107
@@ -88,13 +92,10 @@ COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in
 COPY ./event-observer.js /root/event-observer.js
 
-WORKDIR /root
-
-RUN npm init -y && npm install stacks-encoding-native-js@0.2.0-alpha.0
-
-# Bootstrap chainstates
-SHELL ["/bin/bash", "-ce"]
+# Create run script
 RUN <<EOF
+cat > run.sh <<'EOM'
+#!/bin/bash -e
   if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
     export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
   fi
@@ -121,48 +122,30 @@ RUN <<EOF
       echo "Stacks node caught up to block 101"
       break
     fi
-    sleep 0.5s
+    sleep 2.5s
   done
 
-  kill $STACKS_PID
-  wait $STACKS_PID
-
-  kill $EVENT_OBSERVER_PID
-  # wait $EVENT_OBSERVER_PID
-
-  bitcoin-cli stop
-  wait $BTCD_PID
-EOF
-
-# Create run script
-RUN <<EOF
-cat > run.sh <<'EOM'
-#!/bin/bash -e
-  if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
-    export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
-  fi
-
-  bitcoind &
-  BTCD_PID=$!
-
-  bitcoin-cli -rpcwait getmininginfo
-
-  node event-observer.js &
-  EVENT_OBSERVER_PID=$!
-
-  envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
-  STACKS_PID=$!
-
   function start_miner() {
-    bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
     while true; do
       TX=$(bitcoin-cli listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."
+        sleep 2s
         bitcoin-cli generatetoaddress 1 $BTC_ADDR
       fi
+      CHAININFO=$(bitcoin-cli getblockchaininfo)
+      CHAININFOHEIGHT=$(echo "$CHAININFO" | jq '.blocks')
+      
+      while true; do
+        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+        if [ "$HEIGHT" = "$CHAININFOHEIGHT" ]; then
+          echo "Stacks node caught up to burn block $CHAININFOHEIGHT"
+          break
+        fi
+        sleep 0.1s
+      done
+      
       sleep $MINE_INTERVAL
     done
   }
