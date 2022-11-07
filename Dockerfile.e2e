@@ -122,7 +122,7 @@ cat > run.sh <<'EOM'
       echo "Stacks node caught up to block 101"
       break
     fi
-    sleep 2.5s
+    sleep 1.5s
   done
 
   function start_miner() {
@@ -131,21 +131,8 @@ cat > run.sh <<'EOM'
       CONFS=$(echo "$TX" | jq '.[].confirmations')
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."
-        sleep 2s
         bitcoin-cli generatetoaddress 1 $BTC_ADDR
       fi
-      CHAININFO=$(bitcoin-cli getblockchaininfo)
-      CHAININFOHEIGHT=$(echo "$CHAININFO" | jq '.blocks')
-      
-      while true; do
-        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-        if [ "$HEIGHT" = "$CHAININFOHEIGHT" ]; then
-          echo "Stacks node caught up to burn block $CHAININFOHEIGHT"
-          break
-        fi
-        sleep 0.1s
-      done
-      
       sleep $MINE_INTERVAL
     done
   }
