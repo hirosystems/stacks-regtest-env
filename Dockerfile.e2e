@@ -92,10 +92,9 @@ COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in
 COPY ./event-observer.js /root/event-observer.js
 
-# Create run script
+# Bootstrap chainstates
+SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
-cat > run.sh <<'EOM'
-#!/bin/bash -e
   if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
     export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
   fi
@@ -106,7 +105,7 @@ cat > run.sh <<'EOM'
   bitcoin-cli -rpcwait getmininginfo
   bitcoin-cli createwallet ""
   bitcoin-cli importaddress $BTC_ADDR "" false
-  bitcoin-cli generatetoaddress 101 $BTC_ADDR
+  bitcoin-cli generatetoaddress 99 $BTC_ADDR
 
   node event-observer.js &
   EVENT_OBSERVER_PID=$!
@@ -115,6 +114,47 @@ cat > run.sh <<'EOM'
   envsubst < config.toml.in > config.toml
   stacks-node start --config=config.toml &
   STACKS_PID=$!
+
+  while true; do
+    HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+    if [ "$HEIGHT" = "99" ]; then
+      echo "Stacks node caught up to block 101"
+      break
+    fi
+    sleep 0.5s
+  done
+
+  kill $STACKS_PID
+  wait $STACKS_PID
+
+  kill $EVENT_OBSERVER_PID
+  # wait $EVENT_OBSERVER_PID
+
+  bitcoin-cli stop
+  wait $BTCD_PID
+EOF
+
+# Create run script
+RUN <<EOF
+cat > run.sh <<'EOM'
+#!/bin/bash -e
+  if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
+    export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
+  fi
+
+  bitcoind &
+  BTCD_PID=$!
+  bitcoin-cli -rpcwait getmininginfo
+
+  node event-observer.js &
+  EVENT_OBSERVER_PID=$!
+
+  mkdir -p /chainstate/stacks-blockchain-data
+  envsubst < config.toml.in > config.toml
+  stacks-node start --config=config.toml &
+  STACKS_PID=$!
+
+  bitcoin-cli generatetoaddress 2 $BTC_ADDR
 
   while true; do
     HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
