@@ -138,9 +138,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=zone117x/stacks-api-e2e:latest
           cache-to: type=inline
-          build-args: |
-            STACKS_21_HEIGHT=3
-            STACKS_POX2_HEIGHT=4
 
   build-push-stacks2_1-transition-docker:
     needs: build-stacks-node

@@ -9,8 +9,10 @@ x-common-vars:
   - &BITCOIN_RPC_USER btc
   - &BITCOIN_RPC_PASS btc
   - &MINE_INTERVAL ${MINE_INTERVAL:-0.5s}
-  - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
-  - &STACKS_POX2_HEIGHT ${STACKS_POX2_HEIGHT:-104} # 104 is is stacks_block=1, 106 is stacks_block=3
+  - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-104}
+  - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-105}
+  - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-106}
+  - &STACKS_POX2_HEIGHT ${STACKS_POX2_HEIGHT:-106} # 104 is is stacks_block=1, 106 is stacks_block=3
   - &REWARD_RECIPIENT ${REWARD_RECIPIENT:-STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN} # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 
 services:
@@ -203,7 +205,7 @@ services:
       context: .
       dockerfile: Dockerfile.stacks-api
       args:
-        GIT_COMMIT: 4a332f353ee10802fa7b04e888b32e54d010a69d
+        GIT_COMMIT: e34fab5e5d92222433b19021c584da903b64f27a
     depends_on:
       - postgres
     ports:
