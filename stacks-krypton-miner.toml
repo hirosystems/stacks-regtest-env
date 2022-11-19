@@ -10,15 +10,16 @@ local_peer_seed = "$MINER_SEED"
 miner = true
 use_test_genesis_chainstate = true
 pox_sync_sample_secs = 0
+wait_time_for_blocks = 0
 wait_time_for_microblocks = 50
-microblock_frequency = 5000
+microblock_frequency = 1000
 # mine_microblocks = true
 # max_microblocks = 10
 
 [miner]
 first_attempt_time_ms = 5000
 subsequent_attempt_time_ms = 5000
-#block_reward_recipient = "ST9V4MGBMGHX0WR3MG6JA53HNKMJ2HF9VWRQNTKR"
+$REWARD_RECIPIENT_CONF
 
 [connection_options]
 # inv_sync_interval = 10
