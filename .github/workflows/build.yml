@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: 3c6e4eb2e30dedd018085fc7ff3b340bd7dfcb2f
+  STACKS_BLOCKCHAIN_COMMIT: 748eff4a8ad01aa63611f530813f1f19fbbb25e5
 
 jobs:
   cancel-previous-runs:
