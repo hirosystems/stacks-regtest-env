@@ -2,7 +2,7 @@
 
 FROM rust:bullseye as builder
 
-ARG GIT_COMMIT=748eff4a8ad01aa63611f530813f1f19fbbb25e5
+ARG GIT_COMMIT=b16e121d94306887f21c3d3ed7da1d980c5f3454
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -38,6 +38,7 @@ COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 VOLUME /chainstate
@@ -61,10 +62,16 @@ ENV BITCOIN_RPC_PASS=btc
 ARG MINE_INTERVAL=5s
 ENV MINE_INTERVAL=$MINE_INTERVAL
 
-ARG STACKS_21_HEIGHT=103
+ARG STACKS_20_HEIGHT=103
+ENV STACKS_20_HEIGHT=$STACKS_20_HEIGHT
+
+ARG STACKS_2_05_HEIGHT=104
+ENV STACKS_2_05_HEIGHT=$STACKS_2_05_HEIGHT
+
+ARG STACKS_21_HEIGHT=106
 ENV STACKS_21_HEIGHT=$STACKS_21_HEIGHT
 
-ARG STACKS_POX2_HEIGHT=104
+ARG STACKS_POX2_HEIGHT=107
 ENV STACKS_POX2_HEIGHT=$STACKS_POX2_HEIGHT
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
@@ -72,10 +79,30 @@ ENV STACKS_POX2_HEIGHT=$STACKS_POX2_HEIGHT
 ARG REWARD_RECIPIENT
 ENV REWARD_RECIPIENT=$REWARD_RECIPIENT
 
+ENV BOOTSTRAP_EVENTS_FILE=/event-log.ndjson
+
 COPY ./bitcoin.conf /root/.bitcoin/bitcoin.conf
 COPY ./stacks-krypton-miner.toml /root/config.toml.in
 
 WORKDIR /root
+
+# Setup event observer script
+RUN <<EOF
+cat > /root/event-observer.js <<'EOM'
+const http = require('http');
+const fs = require('fs');
+const fd = fs.openSync(process.env.BOOTSTRAP_EVENTS_FILE, 'a');
+const server = http.createServer((req, res) => {
+  fs.appendFileSync(fd, req.url + '\n');
+  req
+    .on('data', chunk => fs.appendFileSync(fd, chunk))
+    .on('end', () => {
+      fs.appendFileSync(fd, '\n');
+      res.writeHead(200).end();
+    });
+}).listen(3998, '0.0.0.0');
+EOM
+EOF
 
 # Bootstrap chainstates
 SHELL ["/bin/bash", "-ce"]
@@ -90,8 +117,12 @@ RUN <<EOF
   bitcoin-cli -rpcwait getmininginfo
   bitcoin-cli createwallet ""
   bitcoin-cli importaddress $BTC_ADDR "" false
-  bitcoin-cli generatetoaddress 101 $BTC_ADDR
+  bitcoin-cli generatetoaddress 100 $BTC_ADDR
 
+  node event-observer.js &
+  EVENT_OBSERVER_PID=$!
+
+  export STACKS_EVENT_OBSERVER="127.0.0.1:3998"
   mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
   stacks-node start --config=config.toml &
@@ -99,8 +130,8 @@ RUN <<EOF
 
   while true; do
     HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-    if [ "$HEIGHT" = "101" ]; then
-      echo "Stacks node caught up to block 101"
+    if [ "$HEIGHT" = "100" ]; then
+      echo "Stacks node caught up to block 100"
       break
     fi
     sleep 0.5s
@@ -111,12 +142,26 @@ RUN <<EOF
 
   bitcoin-cli stop
   wait $BTCD_PID
+
+  kill $EVENT_OBSERVER_PID
 EOF
 
 # Create run script
 RUN <<EOF
 cat > run.sh <<'EOM'
 #!/bin/bash -e
+
+  if [ -f "$BOOTSTRAP_EVENTS_FILE" ]; then
+    if [ -n "${STACKS_EVENT_OBSERVER}" ]; then
+      while read -r event_path; do
+        read -r event_payload
+        post_url="http://${STACKS_EVENT_OBSERVER}${event_path}"
+        echo "$event_payload" | curl -s --retry 150 --retry-delay 1 --retry-all-errors --show-error --fail -H 'Content-Type: application/json' -d @- "$post_url"
+      done < "$BOOTSTRAP_EVENTS_FILE"
+    fi
+    rm "$BOOTSTRAP_EVENTS_FILE"
+  fi
+
   if [[ ! -z "${REWARD_RECIPIENT}" ]]; then
     export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$REWARD_RECIPIENT\""
   fi
@@ -125,13 +170,13 @@ cat > run.sh <<'EOM'
   BTCD_PID=$!
 
   bitcoin-cli -rpcwait getmininginfo
+  bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
 
   envsubst < config.toml.in > config.toml
   stacks-node start --config=config.toml &
   STACKS_PID=$!
 
   function start_miner() {
-    bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
     while true; do
       TX=$(bitcoin-cli listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
