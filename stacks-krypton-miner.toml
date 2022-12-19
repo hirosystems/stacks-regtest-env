@@ -51,11 +51,11 @@ start_height = 0
 
 [[burnchain.epochs]]
 epoch_name = "2.0"
-start_height = 1
+start_height = $STACKS_20_HEIGHT
 
 [[burnchain.epochs]]
 epoch_name = "2.05"
-start_height = 2
+start_height = $STACKS_2_05_HEIGHT
 
 [[burnchain.epochs]]
 epoch_name = "2.1"
