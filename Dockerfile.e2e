@@ -2,7 +2,7 @@
 
 FROM rust:bullseye as builder
 
-ARG GIT_COMMIT=57e7852f05f1fcd9fd6293c2332b44b1a38c4ec4
+ARG GIT_COMMIT=d0fcbe02ede52047487b250366198432352b9d5d
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -52,6 +52,7 @@ EXPOSE 5490
 
 ENV DATA_DIR=/chainstate/stacks-blockchain-data
 ENV BTC_ADDR=miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
+ENV BTC_ADDR_WIF=cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
 ENV MINER_SEED=9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
 ENV BITCOIN_PEER_HOST=localhost
 ENV BITCOIN_PEER_PORT=18444
@@ -116,7 +117,7 @@ RUN <<EOF
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
   bitcoin-cli createwallet ""
-  bitcoin-cli importaddress $BTC_ADDR "" false
+  bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 100 $BTC_ADDR
 
   node event-observer.js &
