@@ -16,13 +16,13 @@ The image can be ran as a drop-in replacement for a Stacks node running in `mock
 Run a Stacks node, mining blocks on a 2.5 second interval, with the RPC port 20443 exposed (https://localhost:20443/v2/info):
 
 ```shell
-docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" zone117x/stacks-api-e2e
+docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" hirosystems/stacks-api-e2e
 
 ```
 
 An event observer can be registered using the `STACKS_EVENT_OBSERVER` environnment variable. For example, assuming the observer is running on the host machine on port 3700:
 ```shell
-docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" -e "STACKS_EVENT_OBSERVER=host.docker.internal:3700" zone117x/stacks-api-e2e
+docker run -p "20443:20443" -e "MINE_INTERVAL=2.5s" -e "STACKS_EVENT_OBSERVER=host.docker.internal:3700" hirosystems/stacks-api-e2e
 ```
 
 
@@ -32,7 +32,7 @@ If not specified, regular `coinbase` transactions will be mined.
 Note that the address will receive STX rewards 100 blocks _after_ Epoch 2.1 is activated. 
 Usage example:
 ```shell
-docker run -p "20443:20443" -e "REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN" zone117x/stacks-api-e2e
+docker run -p "20443:20443" -e "REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN" hirosystems/stacks-api-e2e
 ```
 
 
@@ -49,7 +49,7 @@ Note that the first Stacks block will be mined at burnblock height 104.
 So, for example, if you want epoch 2.1 to activate at Stacks block 10, and PoX-2 at Stacks block 20, then specify `STACKS_21_HEIGHT=114` and `STACKS_POX2_HEIGHT=124`:
 ```shell
 # clone repo
-git clone https://github.com/zone117x/stacks-regtest-env.git
+git clone https://github.com/hirosystems/stacks-regtest-env.git
 cd stacks-regtest-env
 # build
 docker build -t my_image -f Dockerfile.e2e --build-arg "STACKS_21_HEIGHT=114" --build-arg "STACKS_POX2_HEIGHT=124" .
@@ -61,7 +61,7 @@ docker run -p "20443:20443" -e "MINE_INTERVAL=5s" my_image
 
 Clone this repo and change to its directory:
 ```shell
-git clone https://github.com/zone117x/stacks-regtest-env.git
+git clone https://github.com/hirosystems/stacks-regtest-env.git
 cd stacks-regtest-env
 ```
 

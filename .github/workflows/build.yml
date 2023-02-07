@@ -104,7 +104,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: zone117x/stacks-api-e2e
+          images: hirosystems/stacks-api-e2e
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=stacks2.1,enable={{is_default_branch}}
@@ -126,7 +126,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKERHUB_PASSWORD }}
       - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
@@ -136,7 +136,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=zone117x/stacks-api-e2e:latest
+          cache-from: type=registry,ref=hirosystems/stacks-api-e2e:latest
           cache-to: type=inline
 
   build-push-stacks2_1-transition-docker:
@@ -159,7 +159,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: zone117x/stacks-api-e2e
+          images: hirosystems/stacks-api-e2e
           flavor: |
             latest=false
           tags: |
@@ -182,7 +182,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKERHUB_PASSWORD }}
       - name: Build Docker images
         uses: docker/build-push-action@v3
         with:
@@ -192,7 +192,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=zone117x/stacks-api-e2e:stacks2.1-transition
+          cache-from: type=registry,ref=hirosystems/stacks-api-e2e:stacks2.1-transition
           cache-to: type=inline
           build-args: |
             STACKS_21_HEIGHT=120
