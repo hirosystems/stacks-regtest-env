@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  GIT_COMMITTISH: "2.1.0.0.0"
+  STACKS_BLOCKCHAIN_COMMIT: "2.1.0.0.0"
 
 jobs:
   cancel-previous-runs:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: bin
-          key: cache-stacks-node-${{ env.GIT_COMMITTISH }}
+          key: cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Install Rust - linux/amd64
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions-rs/toolchain@v1
@@ -50,14 +50,14 @@ jobs:
         run: |
           echo "$PWD"
           mkdir stacks-blockchain-repo && cd stacks-blockchain-repo
-          if git ls-remote -htq --exit-code $BLOCKCHAIN_REPO $GIT_COMMITTISH; then
-            echo "Cloning Stacks blockchain from branch or tag: $GIT_COMMITTISH"
-            git clone --depth 1 --branch "$GIT_COMMITTISH" "$BLOCKCHAIN_REPO" .
+          if git ls-remote -htq --exit-code $BLOCKCHAIN_REPO $STACKS_BLOCKCHAIN_COMMIT; then
+            echo "Cloning Stacks blockchain from branch or tag: $STACKS_BLOCKCHAIN_COMMIT"
+            git clone --depth 1 --branch "$STACKS_BLOCKCHAIN_COMMIT" "$BLOCKCHAIN_REPO" .
           else
-            echo "Cloning Stacks blockchain from commit: $GIT_COMMITTISH"
+            echo "Cloning Stacks blockchain from commit: $STACKS_BLOCKCHAIN_COMMIT"
             git init
             git remote add origin $BLOCKCHAIN_REPO
-            git -c protocol.version=2 fetch --depth=1 origin $GIT_COMMITTISH
+            git -c protocol.version=2 fetch --depth=1 origin $STACKS_BLOCKCHAIN_COMMIT
             git reset --hard FETCH_HEAD
           fi
       - name: Rust cache
@@ -65,7 +65,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "stacks-blockchain-repo"
-          shared-key: rust-cache-stacks-node-${{ env.GIT_COMMITTISH }}
+          shared-key: rust-cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Cargo fetch
         if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo

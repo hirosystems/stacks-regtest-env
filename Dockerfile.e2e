@@ -3,7 +3,7 @@
 FROM rust:bullseye as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMITTISH=2.1.0.0.0
+ARG GIT_COMMIT=2.1.0.0.0
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -27,14 +27,14 @@ RUN <<EOF
     exit 0
   fi
 
-  if git ls-remote -htq --exit-code $BLOCKCHAIN_REPO $GIT_COMMITTISH; then
-    echo "Cloning Stacks blockchain from branch or tag: $GIT_COMMITTISH"
-    git clone --depth 1 --branch "$GIT_COMMITTISH" "$BLOCKCHAIN_REPO" .
+  if git ls-remote -htq --exit-code $BLOCKCHAIN_REPO $GIT_COMMIT; then
+    echo "Cloning Stacks blockchain from branch or tag: $GIT_COMMIT"
+    git clone --depth 1 --branch "$GIT_COMMIT" "$BLOCKCHAIN_REPO" .
   else
-    echo "Cloning Stacks blockchain from commit: $GIT_COMMITTISH"
+    echo "Cloning Stacks blockchain from commit: $GIT_COMMIT"
     git init
     git remote add origin $BLOCKCHAIN_REPO
-    git -c protocol.version=2 fetch --depth=1 origin $GIT_COMMITTISH
+    git -c protocol.version=2 fetch --depth=1 origin $GIT_COMMIT
     git reset --hard FETCH_HEAD
   fi
 
