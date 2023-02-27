@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: ecfe80bf16cfe60ef6e68aa30e9b3f8d7b18e268
+  GIT_COMMITTISH: ecfe80bf16cfe60ef6e68aa30e9b3f8d7b18e268
 
 jobs:
   cancel-previous-runs:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: bin
-          key: cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
+          key: cache-stacks-node-${{ env.GIT_COMMITTISH }}
       - name: Install Rust - linux/amd64
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions-rs/toolchain@v1
@@ -45,19 +45,27 @@ jobs:
           sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu
       - name: Fetch Stacks node repo
         if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          BLOCKCHAIN_REPO: https://github.com/stacks-network/stacks-blockchain.git
         run: |
           echo "$PWD"
           mkdir stacks-blockchain-repo && cd stacks-blockchain-repo
-          git init
-          git remote add origin https://github.com/stacks-network/stacks-blockchain.git
-          git -c protocol.version=2 fetch --depth=1 origin $STACKS_BLOCKCHAIN_COMMIT
-          git reset --hard FETCH_HEAD
+          if git ls-remote -htq --exit-code $BLOCKCHAIN_REPO $GIT_COMMITTISH; then
+            echo "Cloning Stacks blockchain from branch or tag: $GIT_COMMITTISH"
+            git clone --depth 1 --branch "$GIT_COMMITTISH" "$BLOCKCHAIN_REPO" .
+          else
+            echo "Cloning Stacks blockchain from commit: $GIT_COMMITTISH"
+            git init
+            git remote add origin $BLOCKCHAIN_REPO
+            git -c protocol.version=2 fetch --depth=1 origin $GIT_COMMITTISH
+            git reset --hard FETCH_HEAD
+          fi
       - name: Rust cache
         if: steps.cache.outputs.cache-hit != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "stacks-blockchain-repo"
-          shared-key: rust-cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
+          shared-key: rust-cache-stacks-node-${{ env.GIT_COMMITTISH }}
       - name: Cargo fetch
         if: steps.cache.outputs.cache-hit != 'true'
         working-directory: stacks-blockchain-repo
