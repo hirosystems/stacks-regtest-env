@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  GIT_COMMITTISH: ecfe80bf16cfe60ef6e68aa30e9b3f8d7b18e268
+  GIT_COMMITTISH: "2.1.0.0.0"
 
 jobs:
   cancel-previous-runs:

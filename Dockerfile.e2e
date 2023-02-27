@@ -3,7 +3,7 @@
 FROM rust:bullseye as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMITTISH=ecfe80bf16cfe60ef6e68aa30e9b3f8d7b18e268
+ARG GIT_COMMITTISH=2.1.0.0.0
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
