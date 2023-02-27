@@ -2,7 +2,10 @@
 
 FROM rust:bullseye as builder
 
-ARG GIT_COMMIT=ecfe80bf16cfe60ef6e68aa30e9b3f8d7b18e268
+# A commit hash, tag, or branch
+ARG GIT_COMMIT=2.1.0.0.0
+ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
+
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -23,11 +26,18 @@ RUN <<EOF
     mkdir -p target/release && mv "$STACKS_NODE_BIN_AMD64" target/release/stacks-node
     exit 0
   fi
-  echo "Building stacks-node from commit: https://github.com/stacks-network/stacks-blockchain/commit/$GIT_COMMIT"
-  git init
-  git remote add origin https://github.com/stacks-network/stacks-blockchain.git
-  git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT"
-  git reset --hard FETCH_HEAD
+
+  if git ls-remote -htq --exit-code $BLOCKCHAIN_REPO $GIT_COMMIT; then
+    echo "Cloning Stacks blockchain from branch or tag: $GIT_COMMIT"
+    git clone --depth 1 --branch "$GIT_COMMIT" "$BLOCKCHAIN_REPO" .
+  else
+    echo "Cloning Stacks blockchain from commit: $GIT_COMMIT"
+    git init
+    git remote add origin $BLOCKCHAIN_REPO
+    git -c protocol.version=2 fetch --depth=1 origin $GIT_COMMIT
+    git reset --hard FETCH_HEAD
+  fi
+
   CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
 EOF
 
