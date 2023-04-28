@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: "2.1.0.0.0"
+  STACKS_BLOCKCHAIN_COMMIT: "2.2.0.0.1"
 
 jobs:
   cancel-previous-runs:
