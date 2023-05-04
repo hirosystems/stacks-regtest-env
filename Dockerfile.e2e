@@ -3,7 +3,7 @@
 FROM rust:bullseye as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=2.2.0.0.1
+ARG GIT_COMMIT=test/epoch-2.4-draft
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -85,6 +85,15 @@ ENV STACKS_21_HEIGHT=$STACKS_21_HEIGHT
 ARG STACKS_POX2_HEIGHT=107
 ENV STACKS_POX2_HEIGHT=$STACKS_POX2_HEIGHT
 
+ARG STACKS_22_HEIGHT=108
+ENV STACKS_22_HEIGHT=$STACKS_22_HEIGHT
+
+ARG STACKS_23_HEIGHT=109
+ENV STACKS_23_HEIGHT=$STACKS_23_HEIGHT
+
+ARG STACKS_24_HEIGHT=111
+ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
+
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
 ARG REWARD_RECIPIENT
@@ -128,7 +137,7 @@ RUN <<EOF
   bitcoin-cli -rpcwait getmininginfo
   bitcoin-cli createwallet ""
   bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
-  bitcoin-cli generatetoaddress 100 $BTC_ADDR
+  bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
   node event-observer.js &
   EVENT_OBSERVER_PID=$!
@@ -141,12 +150,42 @@ RUN <<EOF
 
   while true; do
     HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-    if [ "$HEIGHT" = "100" ]; then
-      echo "Stacks node caught up to block 100"
+    if [ "$HEIGHT" = "101" ]; then
+      echo "Stacks node caught up to Bitcoin block $HEIGHT"
       break
     fi
     sleep 0.5s
   done
+
+  while true; do
+    TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+    CONFS=$(echo "$TX" | jq '.[].confirmations')
+    if [ "$CONFS" = "0" ]; then
+      echo "Detected Stacks mining mempool tx, mining btc block..."
+      bitcoin-cli generatetoaddress 1 $BTC_ADDR
+      chain_height=$(bitcoin-cli getblockcount)
+      echo "Current Bitcoin chain height: $chain_height"
+    
+      while true; do
+        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+        if [ "$HEIGHT" = "$chain_height" ]; then
+          echo "Stacks node caught up to Bitcoin block $HEIGHT"
+          break
+        else
+          echo "Stacks node burn height: $HEIGHT, waiting for $chain_height"
+        fi
+        sleep 0.1s
+      done
+
+      if [ "$chain_height" = "$STACKS_24_HEIGHT" ]; then
+        break
+      fi
+
+    else
+      sleep 0.1s
+    fi
+  done
+
 
   kill $STACKS_PID
   wait $STACKS_PID

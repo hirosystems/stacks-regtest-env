@@ -61,6 +61,18 @@ start_height = $STACKS_2_05_HEIGHT
 epoch_name = "2.1"
 start_height = $STACKS_21_HEIGHT
 
+[[burnchain.epochs]]
+epoch_name = "2.2"
+start_height = $STACKS_22_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.3"
+start_height = $STACKS_23_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.4"
+start_height = $STACKS_24_HEIGHT
+
 [[ustx_balance]]
 address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"
 amount = 10000000000000000
