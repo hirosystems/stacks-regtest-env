@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: "test/epoch-2.4-draft.2"
+  STACKS_BLOCKCHAIN_COMMIT: "feat/epoch-2.4"
 
 jobs:
   cancel-previous-runs:
