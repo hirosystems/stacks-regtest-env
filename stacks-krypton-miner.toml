@@ -9,11 +9,11 @@ local_peer_seed = "$MINER_SEED"
 
 miner = true
 use_test_genesis_chainstate = true
-pox_sync_sample_secs = 0
+pox_sync_sample_secs = 5
 wait_time_for_blocks = 0
 wait_time_for_microblocks = 50
 microblock_frequency = 1000
-# mine_microblocks = true
+mine_microblocks = false
 # max_microblocks = 10
 
 [miner]
@@ -22,18 +22,18 @@ subsequent_attempt_time_ms = 5000
 $REWARD_RECIPIENT_CONF
 
 [connection_options]
-# inv_sync_interval = 10
-# download_interval = 10
-# walk_interval = 10
-disable_block_download = true
-disable_inbound_handshakes = true
-disable_inbound_walks = true
+inv_sync_interval = 10
+download_interval = 10
+walk_interval = 10
+disable_block_download = false
+disable_inbound_handshakes = false
+disable_inbound_walks = false
 public_ip_address = "1.1.1.1:1234"
 
 [burnchain]
 chain = "bitcoin"
 mode = "krypton"
-poll_time_secs = 1
+poll_time_secs = 5
 pox_2_activation = $STACKS_POX2_HEIGHT
 
 ### bitcoind-regtest connection info
