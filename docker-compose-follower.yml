@@ -57,6 +57,9 @@ services:
         mkdir -p $${DATA_DIR}
         rm -rf $${DATA_DIR}/*
         envsubst < config.toml.in > config.toml
+        until $(curl -o /dev/null -s stacks-node-miner:20443); do
+            sleep 5
+        done
         exec stacks-node start --config=config.toml
 
 networks:

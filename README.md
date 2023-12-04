@@ -65,23 +65,15 @@ git clone https://github.com/hirosystems/stacks-regtest-env.git
 cd stacks-regtest-env
 ```
 
-Run the command to create the initial chainstate snapshots:
+Run the command to start the network:
 ```shell
-docker compose up --build snapshot-init
+docker compose -f docker-compose-miner.yml -f docker-compose-follower.yml up --build -d
 ```
-This mines the initial [101 blocks on bitcoind](https://developer.bitcoin.org/examples/testing.html#regtest-mode) (required to have any spendable tBTC in regtest), and syncs the stacks-node against the initial Bitcoin blocks so that it's ready to produce a Stacks block immediately on next startup. Once completed new files will be created in the `init-data` directory.
-
-This only needs ran once. However, after pulling updates from this repo, re-run the command in case the pulled changes are incompatible with the previous snapshot.
-
-
-Now the environment can be started with:
-```shell
-docker compose up --build
-```
+The initial [101 blocks on bitcoind](https://developer.bitcoin.org/examples/testing.html#regtest-mode) (required to have any spendable tBTC in regtest) are mined immediately, after which Stacks blocks will be mined for every new bitcoin block.
 
 The block mining interval defaults to 500ms. This can be configured with the `MINE_INTERVAL` environment variable, for example:
 ```shell
-MINE_INTERVAL=2.5s docker compose up --build
+MINE_INTERVAL=2.5s docker compose -f docker-compose-miner.yml -f docker-compose-follower.yml up --build -d
 ```
 
 The Stacks 2.1 `coinbase-alt-recipient` reward address can be configured using the `REWARD_RECIPIENT` environment variable. 
@@ -90,7 +82,7 @@ If not specified, regular `coinbase` transactions will be mined.
 Note that the address will receive STX rewards 100 blocks _after_ Epoch 2.1 is activated. 
 Usage example:
 ```shell
-REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN MINE_INTERVAL=2.5s docker compose up --build
+REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN MINE_INTERVAL=2.5s docker compose -f docker-compose-miner.yml -f docker-compose-follower.yml up --build -d
 ```
 
 #### The following services are created
@@ -118,8 +110,10 @@ REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN MINE_INTERVAL=2.5s doc
   * Database name: `stacks_blockchain_api`
 
 
-_Note:_ To reset chainstate back to Stacks block height 0, ensure volumes are removed, e.g.:
+_Note:_ The chainstate is reset every time docker compose `up` is run.
+
+### Shutdown
 
 ```shell
-docker compose down --volumes --remove-orphans --timeout=1 --rmi=all
+docker compose -f docker-compose-miner.yml -f docker-compose-follower.yml down --volumes --remove-orphans --timeout=1 --rmi=all
 ```
