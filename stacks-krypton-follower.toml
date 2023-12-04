@@ -1,0 +1,103 @@
+[node]
+name = "krypton-node"
+rpc_bind = "0.0.0.0:20443"
+p2p_bind = "0.0.0.0:20444"
+bootstrap_node = "$MINER_PUB_KEY@stacks-node-miner:20444"
+working_dir = "$DATA_DIR"
+
+# local_peer_seed = "$LOCAL_PEER_SEED"
+
+miner = false
+use_test_genesis_chainstate = true
+pox_sync_sample_secs = 0
+wait_time_for_blocks = 0
+wait_time_for_microblocks = 50
+microblock_frequency = 1000
+# mine_microblocks = true
+# max_microblocks = 10
+
+[miner]
+first_attempt_time_ms = 5000
+subsequent_attempt_time_ms = 5000
+
+[connection_options]
+# inv_sync_interval = 10
+# download_interval = 10
+# walk_interval = 10
+disable_block_download = true
+disable_inbound_handshakes = true
+disable_inbound_walks = true
+public_ip_address = "1.1.1.1:1234"
+
+[burnchain]
+chain = "bitcoin"
+mode = "krypton"
+poll_time_secs = 1
+pox_2_activation = $STACKS_POX2_HEIGHT
+
+### bitcoind-regtest connection info
+peer_host = "$BITCOIN_PEER_HOST"
+peer_port = $BITCOIN_PEER_PORT
+rpc_port = $BITCOIN_RPC_PORT
+rpc_ssl = false
+username = "$BITCOIN_RPC_USER"
+password = "$BITCOIN_RPC_PASS"
+timeout = 30
+
+[[burnchain.epochs]]
+epoch_name = "1.0"
+start_height = 0
+
+[[burnchain.epochs]]
+epoch_name = "2.0"
+start_height = $STACKS_20_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.05"
+start_height = $STACKS_2_05_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.1"
+start_height = $STACKS_21_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.2"
+start_height = $STACKS_22_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.3"
+start_height = $STACKS_23_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.4"
+start_height = $STACKS_24_HEIGHT
+
+[[ustx_balance]]
+address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"
+amount = 10000000000000000
+# secretKey = "cb3df38053d132895220b9ce471f6b676db5b9bf0b4adefb55f2118ece2478df01"
+
+[[ustx_balance]]
+address = "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y"
+amount = 10000000000000000
+# secretKey = "21d43d2ae0da1d9d04cfcaac7d397a33733881081f0b2cd038062cf0ccbb752601"
+
+[[ustx_balance]]
+address = "ST1HB1T8WRNBYB0Y3T7WXZS38NKKPTBR3EG9EPJKR"
+amount = 10000000000000000
+# secretKey = "c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01"
+
+[[ustx_balance]]
+address = "STRYYQQ9M8KAF4NS7WNZQYY59X93XEKR31JP64CP"
+amount = 10000000000000000
+# secretKey = "e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01"
+
+[[ustx_balance]]
+address = "STF9B75ADQAVXQHNEQ6KGHXTG7JP305J2GRWF3A2"
+amount = 10000000000000000
+# secretKey = "ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301",
+
+[[ustx_balance]]
+address = "ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS"
+amount = 10000000000000000
+# secretKey = "08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01",
