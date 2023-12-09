@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:bullseye as builder
+FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
 ARG GIT_COMMIT=14fc7fee769bfa01484d130a4f269884b0b0e9a8
@@ -41,7 +41,7 @@ RUN <<EOF
   CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
 EOF
 
-FROM debian:bullseye-backports
+FROM debian:bookworm-backports
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
 COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
