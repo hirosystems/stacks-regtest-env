@@ -3,7 +3,7 @@
 FROM rust:bullseye as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=feat/epoch-2.4
+ARG GIT_COMMIT=14fc7fee769bfa01484d130a4f269884b0b0e9a8
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -94,6 +94,13 @@ ENV STACKS_23_HEIGHT=$STACKS_23_HEIGHT
 ARG STACKS_24_HEIGHT=111
 ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
 
+ARG STACKS_25_HEIGHT=112
+ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
+
+# do not boot into epoch3.0 for now (it doesn't work yet)
+ARG STACKS_30_HEIGHT=999999 
+ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
+
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
 ARG REWARD_RECIPIENT
@@ -177,7 +184,7 @@ RUN <<EOF
         sleep 0.1s
       done
 
-      if [ "$chain_height" = "$STACKS_24_HEIGHT" ]; then
+      if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
         break
       fi
 

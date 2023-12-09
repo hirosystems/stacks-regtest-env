@@ -32,7 +32,7 @@ public_ip_address = "1.1.1.1:1234"
 
 [burnchain]
 chain = "bitcoin"
-mode = "krypton"
+mode = "neon"
 poll_time_secs = 1
 pox_2_activation = $STACKS_POX2_HEIGHT
 
@@ -72,6 +72,15 @@ start_height = $STACKS_23_HEIGHT
 [[burnchain.epochs]]
 epoch_name = "2.4"
 start_height = $STACKS_24_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.5"
+start_height = $STACKS_25_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "3.0"
+start_height = $STACKS_30_HEIGHT
+
 
 [[ustx_balance]]
 address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"

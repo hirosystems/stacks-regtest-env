@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: "feat/epoch-2.4"
+  STACKS_BLOCKCHAIN_COMMIT: 14fc7fee769bfa01484d130a4f269884b0b0e9a8
 
 jobs:
   cancel-previous-runs:
@@ -115,13 +115,13 @@ jobs:
           images: hirosystems/stacks-api-e2e
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=stacks2.4,enable={{is_default_branch}}
-            type=raw,value=stacks2.4-{{branch}}-{{sha}}
-            type=ref,event=branch,prefix=stacks2.4-
-            type=ref,event=pr,prefix=stacks2.4-
-            type=semver,pattern={{version}},prefix=stacks2.4-
-            type=semver,pattern={{major}}.{{minor}},prefix=stacks2.4-
-            type=sha,prefix=stacks2.4-
+            type=raw,value=stacks3.0,enable={{is_default_branch}}
+            type=raw,value=stacks3.0-{{branch}}-{{sha}}
+            type=ref,event=branch,prefix=stacks3.0-
+            type=ref,event=pr,prefix=stacks3.0-
+            type=semver,pattern={{version}},prefix=stacks3.0-
+            type=semver,pattern={{major}}.{{minor}},prefix=stacks3.0-
+            type=sha,prefix=stacks3.0-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
