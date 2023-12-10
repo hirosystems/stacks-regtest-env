@@ -6,15 +6,11 @@ on:
 env:
   STACKS_BLOCKCHAIN_COMMIT: f8ffd1dbe8990234391def4611b2611be9a3e4ba
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.10.0
-        with:
-          access_token: ${{ github.token }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   build-stacks-node:
     runs-on: ubuntu-22.04
     steps:
