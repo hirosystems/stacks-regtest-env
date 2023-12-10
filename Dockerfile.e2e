@@ -38,6 +38,9 @@ RUN <<EOF
     git reset --hard FETCH_HEAD
   fi
 
+  apt-get update && apt-get install -y libclang-dev
+  rustup toolchain install stable
+  rustup component add rustfmt --toolchain stable
   CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
 EOF
 
