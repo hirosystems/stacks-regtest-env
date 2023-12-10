@@ -28,16 +28,10 @@ jobs:
           key: cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Install Rust - linux/amd64
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-gnu
+        run: rustup toolchain install stable
       - name: Install Rust - linux/arm64
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: aarch64-unknown-linux-gnu
+        run: rustup target add aarch64-unknown-linux-gnu
       - name: Install compilation tooling
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
