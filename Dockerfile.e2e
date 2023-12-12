@@ -3,7 +3,7 @@
 FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=f8ffd1dbe8990234391def4611b2611be9a3e4ba
+ARG GIT_COMMIT=16bb6887f84a299b5bbbe4c469337169849ce6ed
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -47,7 +47,7 @@ EOF
 FROM debian:bookworm-backports
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
-COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=btcpayserver/bitcoin:25.1 /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli /usr/local/bin/
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y curl gettext-base jq
@@ -100,9 +100,11 @@ ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
 ARG STACKS_25_HEIGHT=112
 ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
 
-# do not boot into epoch3.0 for now (it doesn't work yet)
-ARG STACKS_30_HEIGHT=999999 
+ARG STACKS_30_HEIGHT=121
 ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
+
+ARG STACKS_PREHEAT_FINISH_HEIGHT=130
+ENV STACKS_PREHEAT_FINISH_HEIGHT=$STACKS_PREHEAT_FINISH_HEIGHT
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
@@ -134,6 +136,33 @@ const server = http.createServer((req, res) => {
 EOM
 EOF
 
+# Create Stacking script
+RUN npm init -y && npm i @stacks/stacking@6
+RUN <<EOF
+cat > /root/stack.js <<'EOM'
+  const { StackingClient } = require('@stacks/stacking');
+  const { StacksTestnet } = require('@stacks/network');
+  console.log('Stacking with args:', process.argv.slice(2));
+  const network = new StacksTestnet({ url: 'http://localhost:20443' });
+  const address = 'ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS';
+  const client = new StackingClient(address, network);
+  client.stack({
+    amountMicroStx: parseInt(process.argv[2]),
+    burnBlockHeight: parseInt(process.argv[3]),
+    poxAddress: 'mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP',
+    cycles: 12,
+    privateKey: '08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01',
+    fee: 1000,
+    nonce: 0,
+  })
+    .then(r => console.log('Stacked', r))
+    .catch(e => {
+      console.error('Error stacking', e);
+      process.exit(1);
+    });
+EOM
+EOF
+
 # Bootstrap chainstates
 SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
@@ -145,7 +174,7 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
-  bitcoin-cli createwallet ""
+  bitcoin-cli -named createwallet wallet_name="" descriptors=false
   bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
@@ -187,7 +216,33 @@ RUN <<EOF
         sleep 0.1s
       done
 
-      if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
+      POX_CONTRACT=$(curl -s localhost:20443/v2/pox | jq -r '.contract_id')
+      BURN_HEIGHT=$(curl -s localhost:20443/v2/pox | jq -r '.current_burnchain_block_height')
+      echo "POX contract check $BURN_HEIGHT $POX_CONTRACT"
+      if [ "$BURN_HEIGHT" -eq $(($STACKS_25_HEIGHT + 1)) ] && [ "$POX_CONTRACT" = "ST000000000000000000002AMW42H.pox-4" ]; then
+      # if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
+        echo "POX contract is pox-4"
+        # issue a stack-stx tx, required for epoch3.0 transition
+        POX_STATE=$(curl -s localhost:20443/v2/pox)
+        echo "Stack STX tx for epoch3.0 transition"
+        echo "$POX_STATE" | jq '.'
+        MIN_STACKING_AMOUNT=$(echo $POX_STATE | jq '.min_amount_ustx')
+        BURN_HEIGHT=$(echo $POX_STATE | jq '.current_burnchain_block_height + 1')
+        node /root/stack.js $MIN_STACKING_AMOUNT $BURN_HEIGHT
+        sleep 5s
+      fi
+
+      if [ "$chain_height" -eq $(($STACKS_30_HEIGHT + 2)) ]; then
+        POX_STATE=$(curl -s localhost:20443/v2/pox)
+        echo "Stack STX tx for continued mining"
+        echo "$POX_STATE" | jq '.'
+        MIN_STACKING_AMOUNT=$(echo $POX_STATE | jq '.min_amount_ustx * 2')
+        BURN_HEIGHT=$(echo $POX_STATE | jq '.current_burnchain_block_height')
+        node /root/stack.js $MIN_STACKING_AMOUNT $BURN_HEIGHT
+        sleep 5s
+      fi
+
+      if [ "$chain_height" = "$STACKS_PREHEAT_FINISH_HEIGHT" ]; then
         break
       fi
 

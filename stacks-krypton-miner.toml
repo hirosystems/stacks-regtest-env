@@ -34,6 +34,7 @@ public_ip_address = "1.1.1.1:1234"
 chain = "bitcoin"
 mode = "neon"
 poll_time_secs = 1
+pox_prepare_length = 3
 pox_2_activation = $STACKS_POX2_HEIGHT
 
 ### bitcoind-regtest connection info
