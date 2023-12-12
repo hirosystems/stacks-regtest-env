@@ -3,7 +3,7 @@
 FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=16bb6887f84a299b5bbbe4c469337169849ce6ed
+ARG GIT_COMMIT=390dffc7e3593711c1f55505d3308063a2039df6
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -41,12 +41,12 @@ RUN <<EOF
   apt-get update && apt-get install -y libclang-dev
   rustup toolchain install stable
   rustup component add rustfmt --toolchain stable
-  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
+  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node
 EOF
 
 FROM debian:bookworm-backports
 
-COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
+COPY --from=builder /stacks/target/debug/stacks-node /usr/local/bin/
 COPY --from=btcpayserver/bitcoin:25.1 /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli /usr/local/bin/
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -100,10 +100,10 @@ ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
 ARG STACKS_25_HEIGHT=112
 ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
 
-ARG STACKS_30_HEIGHT=121
+ARG STACKS_30_HEIGHT=131
 ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
 
-ARG STACKS_PREHEAT_FINISH_HEIGHT=130
+ARG STACKS_PREHEAT_FINISH_HEIGHT=150
 ENV STACKS_PREHEAT_FINISH_HEIGHT=$STACKS_PREHEAT_FINISH_HEIGHT
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
@@ -292,12 +292,18 @@ cat > run.sh <<'EOM'
   STACKS_PID=$!
 
   function start_miner() {
+    DEFAULT_TIMEOUT=$(date -v+30S +%s)
     while true; do
       TX=$(bitcoin-cli listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
+      NOW=$(date +%s)
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."
         bitcoin-cli generatetoaddress 1 $BTC_ADDR
+        DEFAULT_TIMEOUT=$(date -v+30S +%s)
+      elif [[ $NOW -ge $DEFAULT_TIMEOUT ]]; then
+        bitcoin-cli generatetoaddress 1 $BTC_ADDR
+        DEFAULT_TIMEOUT=$(date -v+30S +%s)
       fi
       sleep $MINE_INTERVAL
     done
