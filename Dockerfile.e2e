@@ -100,7 +100,7 @@ ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
 ARG STACKS_25_HEIGHT=112
 ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
 
-ARG STACKS_30_HEIGHT=131
+ARG STACKS_30_HEIGHT=132
 ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
 
 ARG STACKS_PREHEAT_FINISH_HEIGHT=150
@@ -196,26 +196,21 @@ RUN <<EOF
     sleep 0.5s
   done
 
+  DEFAULT_TIMEOUT=$(($(date +%s) + 30))
   while true; do
     TX=$(bitcoin-cli listtransactions '*' 1 0 true)
     CONFS=$(echo "$TX" | jq '.[].confirmations')
-    if [ "$CONFS" = "0" ]; then
-      echo "Detected Stacks mining mempool tx, mining btc block..."
+    if [ "$CONFS" = "0" ] || [ $(date +%s) -gt $DEFAULT_TIMEOUT ]; then
+      if [ $(date +%s) -gt $DEFAULT_TIMEOUT ]; then
+        echo "Timed out waiting for a mempool tx, mining a btc block..."
+      else
+        echo "Detected Stacks mining mempool tx, mining btc block..."
+      fi
       bitcoin-cli generatetoaddress 1 $BTC_ADDR
+      DEFAULT_TIMEOUT=$(($(date +%s) + 30))
       chain_height=$(bitcoin-cli getblockcount)
       echo "Current Bitcoin chain height: $chain_height"
     
-      while true; do
-        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-        if [ "$HEIGHT" = "$chain_height" ]; then
-          echo "Stacks node caught up to Bitcoin block $HEIGHT"
-          break
-        else
-          echo "Stacks node burn height: $HEIGHT, waiting for $chain_height"
-        fi
-        sleep 0.1s
-      done
-
       POX_CONTRACT=$(curl -s localhost:20443/v2/pox | jq -r '.contract_id')
       BURN_HEIGHT=$(curl -s localhost:20443/v2/pox | jq -r '.current_burnchain_block_height')
       echo "POX contract check $BURN_HEIGHT $POX_CONTRACT"
@@ -226,18 +221,8 @@ RUN <<EOF
         POX_STATE=$(curl -s localhost:20443/v2/pox)
         echo "Stack STX tx for epoch3.0 transition"
         echo "$POX_STATE" | jq '.'
-        MIN_STACKING_AMOUNT=$(echo $POX_STATE | jq '.min_amount_ustx')
+        MIN_STACKING_AMOUNT=9000000000000000
         BURN_HEIGHT=$(echo $POX_STATE | jq '.current_burnchain_block_height + 1')
-        node /root/stack.js $MIN_STACKING_AMOUNT $BURN_HEIGHT
-        sleep 5s
-      fi
-
-      if [ "$chain_height" -eq $(($STACKS_30_HEIGHT + 2)) ]; then
-        POX_STATE=$(curl -s localhost:20443/v2/pox)
-        echo "Stack STX tx for continued mining"
-        echo "$POX_STATE" | jq '.'
-        MIN_STACKING_AMOUNT=$(echo $POX_STATE | jq '.min_amount_ustx * 2')
-        BURN_HEIGHT=$(echo $POX_STATE | jq '.current_burnchain_block_height')
         node /root/stack.js $MIN_STACKING_AMOUNT $BURN_HEIGHT
         sleep 5s
       fi
@@ -292,18 +277,12 @@ cat > run.sh <<'EOM'
   STACKS_PID=$!
 
   function start_miner() {
-    DEFAULT_TIMEOUT=$(date -v+30S +%s)
     while true; do
       TX=$(bitcoin-cli listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
-      NOW=$(date +%s)
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."
         bitcoin-cli generatetoaddress 1 $BTC_ADDR
-        DEFAULT_TIMEOUT=$(date -v+30S +%s)
-      elif [[ $NOW -ge $DEFAULT_TIMEOUT ]]; then
-        bitcoin-cli generatetoaddress 1 $BTC_ADDR
-        DEFAULT_TIMEOUT=$(date -v+30S +%s)
       fi
       sleep $MINE_INTERVAL
     done
