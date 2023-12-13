@@ -46,7 +46,7 @@ EOF
 
 FROM debian:bookworm-backports
 
-COPY --from=builder /stacks/target/debug/stacks-node /usr/local/bin/
+COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
 COPY --from=btcpayserver/bitcoin:25.1 /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli /usr/local/bin/
 
 ENV DEBIAN_FRONTEND noninteractive
