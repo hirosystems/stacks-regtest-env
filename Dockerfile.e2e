@@ -197,6 +197,7 @@ RUN <<EOF
   done
 
   DEFAULT_TIMEOUT=$(($(date +%s) + 30))
+  SENT_STACKING=0
   while true; do
     TX=$(bitcoin-cli listtransactions '*' 1 0 true)
     CONFS=$(echo "$TX" | jq '.[].confirmations')
@@ -214,14 +215,14 @@ RUN <<EOF
       POX_CONTRACT=$(curl -s localhost:20443/v2/pox | jq -r '.contract_id')
       BURN_HEIGHT=$(curl -s localhost:20443/v2/pox | jq -r '.current_burnchain_block_height')
       echo "POX contract check $BURN_HEIGHT $POX_CONTRACT"
-      if [ "$BURN_HEIGHT" -eq $(($STACKS_25_HEIGHT + 1)) ] && [ "$POX_CONTRACT" = "ST000000000000000000002AMW42H.pox-4" ]; then
-      # if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
+      if [ "$POX_CONTRACT" = "ST000000000000000000002AMW42H.pox-4" ] && [ "$SENT_STACKING" = "0" ]; then
         echo "POX contract is pox-4"
+        SENT_STACKING=1
         # issue a stack-stx tx, required for epoch3.0 transition
         POX_STATE=$(curl -s localhost:20443/v2/pox)
         echo "Stack STX tx for epoch3.0 transition"
         echo "$POX_STATE" | jq '.'
-        MIN_STACKING_AMOUNT=9000000000000000
+        MIN_STACKING_AMOUNT="8500000000000000"
         BURN_HEIGHT=$(echo $POX_STATE | jq '.current_burnchain_block_height + 1')
         node /root/stack.js $MIN_STACKING_AMOUNT $BURN_HEIGHT
         sleep 5s
