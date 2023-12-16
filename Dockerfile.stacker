@@ -10,21 +10,21 @@ RUN <<EOF
 cat > /root/stack.js <<'EOM'
   const { StackingClient } = require('@stacks/stacking');
   const { StacksTestnet } = require('@stacks/network');
-  console.log('Stacking with args:', process.argv.slice(2));
   const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
   const network = new StacksTestnet({ url });
-  const address = 'ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS';
-  const client = new StackingClient(address, network);
-  client.stack({
+  const client = new StackingClient(process.env.STACKS_ADDR, network);
+  const stackingArgs = {
+    poxAddress: process.env.POX_ADDR,
+    privateKey: process.env.STACKS_PRIVKEY,
     amountMicroStx: parseInt(process.argv[2]),
     burnBlockHeight: parseInt(process.argv[3]),
-    poxAddress: 'mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP',
-    cycles: 12,
-    privateKey: '08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01',
+    cycles: parseInt(process.argv[4]),
     fee: 1000,
-    nonce: 0,
-  })
-    .then(r => console.log('Stacked', r))
+    // nonce: 0,
+  };
+  console.log('Stacking with args:', stackingArgs);
+  client.stack(stackingArgs)
+    .then(r => console.log('Stacking tx result', r))
     .catch(e => {
       console.error('Error stacking', e);
       process.exit(1);
