@@ -3,32 +3,7 @@ FROM node:18-bookworm as builder
 RUN apt-get update && apt-get install -y curl gettext-base jq
 
 WORKDIR /root
+COPY ./stacking/stacking.js ./stacking/package.json /root/
+RUN npm i
 
-# Create Stacking script
-RUN npm init -y && npm i @stacks/stacking@6
-RUN <<EOF
-cat > /root/stack.js <<'EOM'
-  const { StackingClient } = require('@stacks/stacking');
-  const { StacksTestnet } = require('@stacks/network');
-  const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
-  const network = new StacksTestnet({ url });
-  const client = new StackingClient(process.env.STACKS_ADDR, network);
-  const stackingArgs = {
-    poxAddress: process.env.POX_ADDR,
-    privateKey: process.env.STACKS_PRIVKEY,
-    amountMicroStx: parseInt(process.argv[2]),
-    burnBlockHeight: parseInt(process.argv[3]),
-    cycles: parseInt(process.argv[4]),
-    fee: 1000,
-    // nonce: 0,
-  };
-  console.log('Stacking with args:', stackingArgs);
-  client.stack(stackingArgs)
-    .then(r => console.log('Stacking tx result', r))
-    .catch(e => {
-      console.error('Error stacking', e);
-      process.exit(1);
-    });
-EOM
-EOF
-
+CMD ["node", "/root/stacking.js"]

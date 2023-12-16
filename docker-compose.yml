@@ -151,49 +151,9 @@ services:
     environment:
       STACKS_CORE_RPC_HOST: stacks-node-miner
       STACKS_CORE_RPC_PORT: 20443
-      STACKS_ADDR: ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS
-      STACKS_PRIVKEY: 08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01
-      POX_ADDR: mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP
+      STACKING_KEYS: 08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01,ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301,e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01
     depends_on:
       - stacks-node-miner
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        SENT_STACKING=0
-        while true; do
-          POX_STATE=$$(curl -s http://stacks-node-miner:20443/v2/pox) || {
-            echo "Curl /v2/pox failed, sleeping for 2 seconds..."
-            sleep 2s
-            continue
-          }
-          INFO_STATE=$$(curl -s http://stacks-node-miner:20443/v2/info) || {
-            echo "Curl /v2/info failed, sleeping for 2 seconds..."
-            sleep 2s
-            continue
-          }
-          ACCOUNT_STATE=$$(curl -s http://stacks-node-miner:20443/v2/accounts/$${STACKS_ADDR}?proof=0) || {
-            echo "Curl /v2/accounts/$$STACKS_ADDR failed, sleeping for 2 seconds..."
-            sleep 2s
-            continue
-          }
-          STACKS_HEIGHT=$$(echo $$INFO_STATE | jq -r '.stacks_tip_height')
-          POX_CONTRACT=$$(echo $$POX_STATE | jq -r '.contract_id')
-          BURN_HEIGHT=$$(echo $$POX_STATE | jq -r '.current_burnchain_block_height')
-          LOCKED=$$(echo $$ACCOUNT_STATE | jq -r '.locked')
-          echo "POX check, stacks=$$STACKS_HEIGHT, burn=$$BURN_HEIGHT, locked=$$LOCKED, $$POX_CONTRACT"
-          if [ "$$POX_CONTRACT" = "ST000000000000000000002AMW42H.pox-4" ] && [ "$$SENT_STACKING" = "0" ]; then
-            SENT_STACKING=1
-            echo "Stack STX tx for epoch3.0 transition"
-            echo "$$POX_STATE" | jq '.'
-            echo "$$INFO_STATE" | jq '.'
-            MIN_STACKING_AMOUNT="8500000000000000"
-            BURN_HEIGHT=$$(echo $$POX_STATE | jq '.current_burnchain_block_height')
-            node /root/stack.js $$MIN_STACKING_AMOUNT $$BURN_HEIGHT 4
-            sleep 5s
-          fi
-          sleep 2s
-        done
 
   ##################################
   ##### UNCOMMENT IF USING API #####
