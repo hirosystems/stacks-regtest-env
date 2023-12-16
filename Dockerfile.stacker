@@ -1,0 +1,34 @@
+FROM node:18-bookworm as builder
+
+RUN apt-get update && apt-get install -y curl gettext-base jq
+
+WORKDIR /root
+
+# Create Stacking script
+RUN npm init -y && npm i @stacks/stacking@6
+RUN <<EOF
+cat > /root/stack.js <<'EOM'
+  const { StackingClient } = require('@stacks/stacking');
+  const { StacksTestnet } = require('@stacks/network');
+  console.log('Stacking with args:', process.argv.slice(2));
+  const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
+  const network = new StacksTestnet({ url });
+  const address = 'ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS';
+  const client = new StackingClient(address, network);
+  client.stack({
+    amountMicroStx: parseInt(process.argv[2]),
+    burnBlockHeight: parseInt(process.argv[3]),
+    poxAddress: 'mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP',
+    cycles: 12,
+    privateKey: '08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01',
+    fee: 1000,
+    nonce: 0,
+  })
+    .then(r => console.log('Stacked', r))
+    .catch(e => {
+      console.error('Error stacking', e);
+      process.exit(1);
+    });
+EOM
+EOF
+
