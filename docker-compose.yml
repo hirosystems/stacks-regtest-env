@@ -89,7 +89,7 @@ services:
           wait || exit 0
         done
 
-  stacks-node-miner:
+  stacks-node:
     networks:
       - stacks
     build:
@@ -109,7 +109,7 @@ services:
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
-      # STACKS_EVENT_OBSERVER: stacks-api:3700 # uncomment if using API
+      STACKS_EVENT_OBSERVER: stacks-api:3700
       DATA_DIR: /chainstate/stacks-blockchain-miner-data
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
@@ -149,64 +149,62 @@ services:
       context: .
       dockerfile: Dockerfile.stacker
     environment:
-      STACKS_CORE_RPC_HOST: stacks-node-miner
+      STACKS_CORE_RPC_HOST: stacks-node
       STACKS_CORE_RPC_PORT: 20443
       STACKING_KEYS: 08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01,ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301,e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01
     depends_on:
-      - stacks-node-miner
+      - stacks-node
 
-  ##################################
-  ##### UNCOMMENT IF USING API #####
-  ##################################
-  # postgres:
-  #   image: "postgres:15"
-  #   ports:
-  #     - "5490:5490"
-  #   volumes:
-  #     - chainstate:/chainstate
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: stacks_blockchain_api
-  #     PGPORT: 5490
-  #     PGDATA: /chainstate/pg-data
+  postgres:
+    networks:
+      - stacks
+    image: "postgres:15"
+    ports:
+      - "5490:5490"
+    volumes:
+      - chainstate:/chainstate
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stacks_blockchain_api
+      PGPORT: 5490
+      PGDATA: /chainstate/pg-data
 
-  # stacks-api:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.stacks-api
-  #     args:
-  #       GIT_COMMIT: 4a332f353ee10802fa7b04e888b32e54d010a69d
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - "3999:3999"
-  #   expose:
-  #     - "3700"
-  #   environment:
-  #     NODE_ENVIRONMENT: production
-  #     STACKS_API_LOG_LEVEL: debug
-  #     STACKS_CHAIN_ID: "0x80000000"
-  #     STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
-  #     STACKS_BLOCKCHAIN_API_PORT: 3999
-  #     STACKS_CORE_EVENT_HOST: "0.0.0.0"
-  #     STACKS_CORE_EVENT_PORT: 3700
-  #     PG_HOST: postgres
-  #     PG_PORT: 5490
-  #     PG_USER: postgres
-  #     PG_PASSWORD: postgres
-  #     PG_DATABASE: stacks_blockchain_api
-  #     PG_SCHEMA: public
-  #     STACKS_CORE_RPC_HOST: stacks-node
-  #     STACKS_CORE_RPC_PORT: 20443
-  #     BTC_RPC_HOST: http://bitcoind
-  #     BTC_RPC_PORT: 18443
-  #     BTC_RPC_USER: btc
-  #     BTC_RPC_PW: btc
-  #     BTC_FAUCET_PK: *MINER_SEED
-  ##################################
-  ##### UNCOMMENT IF USING API #####
-  ##################################
+  stacks-api:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-api
+      args:
+        GIT_COMMIT: 94687ae0b393c31c7993174380c91566c62d7fc5
+    depends_on:
+      - postgres
+    ports:
+      - "3999:3999"
+    expose:
+      - "3700"
+    environment:
+      NODE_ENVIRONMENT: production
+      STACKS_API_LOG_LEVEL: debug
+      STACKS_CHAIN_ID: "0x80000000"
+      STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
+      STACKS_BLOCKCHAIN_API_PORT: 3999
+      STACKS_CORE_EVENT_HOST: "0.0.0.0"
+      STACKS_CORE_EVENT_PORT: 3700
+      PG_HOST: postgres
+      PG_PORT: 5490
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DATABASE: stacks_blockchain_api
+      PG_SCHEMA: public
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      BTC_RPC_HOST: http://bitcoind
+      BTC_RPC_PORT: 18443
+      BTC_RPC_USER: btc
+      BTC_RPC_PW: btc
+      BTC_FAUCET_PK: *MINER_SEED
 
 networks:
   stacks:

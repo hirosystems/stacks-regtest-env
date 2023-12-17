@@ -17,9 +17,8 @@ RUN git describe --tags --abbrev=0 || git -c user.name='user' -c user.email='ema
 RUN echo "GIT_TAG=$(git tag --points-at HEAD)" >> .env
 
 RUN npm config set update-notifier false && \
-    npm config set unsafe-perm true && \
     npm ci --audit=false && \
     npm run build && \
-    npm prune --production
+    npm prune --omit=dev
 
 CMD ["node", "./lib/index.js"]
