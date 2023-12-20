@@ -1,7 +1,7 @@
 version: "3.9"
 
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT 8cffc3892f6451fdff525952a025f77482a8f728
+  - &STACKS_BLOCKCHAIN_COMMIT 2789b184ef301734f0af2132fac4b303ef0f9a7c
   - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
@@ -141,7 +141,6 @@ services:
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config=config.toml
 
-
   stacker:
     networks:
       - stacks
@@ -152,6 +151,19 @@ services:
       STACKS_CORE_RPC_HOST: stacks-node
       STACKS_CORE_RPC_PORT: 20443
       STACKING_KEYS: 08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01,ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301,e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01
+    depends_on:
+      - stacks-node
+
+  tx-broadcaster:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.tx-broadcaster
+    environment:
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      ACCOUNT_KEYS: 0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01,975b251dd7809469ef0c26ec3917971b75c51cd73a022024df4bf3b232cc2dc001,c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01
     depends_on:
       - stacks-node
 
