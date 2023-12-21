@@ -25,7 +25,9 @@ async function run() {
     return;
   }
   const nextCycleStx = poxInfo.next_cycle.stacked_ustx;
-  const minStx = poxInfo.next_cycle.min_threshold_ustx;
+  let minStx = poxInfo.next_cycle.min_threshold_ustx;
+  // Bump min threshold by 50% to avoid getting stuck if threshold increases
+  minStx = Math.floor(minStx * 1.5);
   if (nextCycleStx >= minStx) {
     console.log(`Next cycle has enough stacked, skipping stacking (stacked=${nextCycleStx}, min=${minStx})`);
     return;
