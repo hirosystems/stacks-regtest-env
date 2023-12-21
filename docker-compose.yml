@@ -9,6 +9,7 @@ x-common-vars:
   - &BITCOIN_RPC_USER btc
   - &BITCOIN_RPC_PASS btc
   - &MINE_INTERVAL ${MINE_INTERVAL:-0.5s}
+  - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-60s}
   - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-101}
   - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-102}
   - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
@@ -58,7 +59,9 @@ services:
     environment:
       BTC_ADDR: *BTC_ADDR
       MINE_INTERVAL: *MINE_INTERVAL
+      MINE_INTERVAL_EPOCH3: *MINE_INTERVAL_EPOCH3
       INIT_BLOCKS: 101
+      STACKS_30_HEIGHT: *STACKS_30_HEIGHT
     entrypoint:
       - /bin/bash
       - -c
@@ -85,7 +88,14 @@ services:
           else
             echo "No Stacks mining tx detected"
           fi
-          sleep $${MINE_INTERVAL} &
+
+          SLEEP_DURATION=$${MINE_INTERVAL}
+          BLOCK_HEIGHT=$$(bitcoin-cli -rpcconnect=bitcoind getblockcount)
+          if [ "$${BLOCK_HEIGHT}" -gt $$(( $${STACKS_30_HEIGHT} + 5 )) ]; then
+            echo "In Epoch3, sleeping for $${MINE_INTERVAL_EPOCH3} seconds..."
+            SLEEP_DURATION=$${MINE_INTERVAL_EPOCH3}
+          fi
+          sleep $${SLEEP_DURATION} &
           wait || exit 0
         done
 
@@ -189,7 +199,7 @@ services:
       context: .
       dockerfile: Dockerfile.stacks-api
       args:
-        GIT_COMMIT: 94687ae0b393c31c7993174380c91566c62d7fc5
+        GIT_COMMIT: db859ae980368db22b9d1c4c7096918d5f7f4c4b
     depends_on:
       - postgres
     ports:
