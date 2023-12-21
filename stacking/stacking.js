@@ -5,6 +5,7 @@ const { getPublicKeyFromPrivate, publicKeyToBtcAddress } = require('@stacks/encr
 
 const stackingInterval = process.env.STACKING_INTERVAL ?? 2;
 const postTxWait = process.env.POST_TX_WAIT ?? 10;
+const stackingCycles = process.env.STACKING_CYCLES ?? 1;
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 const network = new StacksTestnet({ url });
 
@@ -49,7 +50,7 @@ async function run() {
     privateKey: account.privKey,
     amountMicroStx: minStx,
     burnBlockHeight: poxInfo.current_burnchain_block_height,
-    cycles: 1,
+    cycles: stackingCycles,
     fee: 1000,
   };
   console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs });
