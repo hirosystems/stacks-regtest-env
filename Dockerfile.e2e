@@ -47,7 +47,7 @@ EOF
 FROM debian:bookworm-backports
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
-COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=dobtc/bitcoin:25.1 /opt/bitcoin-*/bin /usr/local/bin
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y curl gettext-base jq
@@ -145,7 +145,7 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
-  bitcoin-cli createwallet ""
+  bitcoin-cli -named createwallet wallet_name="" descriptors=false
   bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
