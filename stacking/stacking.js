@@ -2,6 +2,7 @@ const { StackingClient } = require('@stacks/stacking');
 const { StacksTestnet } = require('@stacks/network');
 const { getAddressFromPrivateKey, TransactionVersion } = require('@stacks/transactions');
 const { getPublicKeyFromPrivate, publicKeyToBtcAddress } = require('@stacks/encryption');
+const crypto = require('crypto');
 
 const stackingInterval = process.env.STACKING_INTERVAL ?? 2;
 const postTxWait = process.env.POST_TX_WAIT ?? 10;
@@ -15,6 +16,7 @@ const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   return {
     privKey, pubKey, stxAddress,
     btcAddr: publicKeyToBtcAddress(pubKey),
+    signerKey: crypto.randomBytes(33).toString('hex'),
     client: new StackingClient(stxAddress, network),
   };
 });
@@ -52,6 +54,7 @@ async function run() {
     burnBlockHeight: poxInfo.current_burnchain_block_height,
     cycles: stackingCycles,
     fee: 1000,
+    signerKey: account.signerKey,
   };
   console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs });
   const stackResult = await account.client.stack(stackingArgs)
