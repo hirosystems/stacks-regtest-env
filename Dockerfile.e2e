@@ -145,7 +145,7 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
-  bitcoin-cli -named createwallet wallet_name=main descriptors=false
+  bitcoin-cli -named createwallet wallet_name=main descriptors=false load_on_startup=true
   bitcoin-cli -rpcwallet=main importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
