@@ -145,8 +145,8 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
-  bitcoin-cli -named createwallet wallet_name="" descriptors=false
-  bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
+  bitcoin-cli -named createwallet wallet_name=main descriptors=false
+  bitcoin-cli -rpcwallet=main importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
   node event-observer.js &
@@ -168,7 +168,7 @@ RUN <<EOF
   done
 
   while true; do
-    TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+    TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
     CONFS=$(echo "$TX" | jq '.[].confirmations')
     if [ "$CONFS" = "0" ]; then
       echo "Detected Stacks mining mempool tx, mining btc block..."
@@ -238,7 +238,7 @@ cat > run.sh <<'EOM'
 
   function start_miner() {
     while true; do
-      TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+      TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."
