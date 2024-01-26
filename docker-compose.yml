@@ -200,7 +200,7 @@ services:
       context: .
       dockerfile: Dockerfile.stacks-api
       args:
-        GIT_COMMIT: db859ae980368db22b9d1c4c7096918d5f7f4c4b
+        GIT_COMMIT: 7521dc3a7cb146109f0277364acad2e48bb51594
     depends_on:
       - postgres
     ports:
