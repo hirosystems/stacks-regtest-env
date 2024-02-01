@@ -54,6 +54,7 @@ rpc_ssl = false
 username = "$BITCOIN_RPC_USER"
 password = "$BITCOIN_RPC_PASS"
 timeout = 30
+wallet_name = "main"
 
 [[burnchain.epochs]]
 epoch_name = "1.0"
