@@ -184,7 +184,7 @@ RUN <<EOF
   export STACKS_EVENT_OBSERVER="127.0.0.1:3998"
   mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   while true; do
@@ -274,7 +274,7 @@ cat > run.sh <<'EOM'
   bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
 
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   function start_miner() {

@@ -149,7 +149,7 @@ services:
         rm -rf $${DATA_DIR}/*
         envsubst < config.toml.in > config.toml
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
-        exec stacks-node start --config=config.toml
+        exec stacks-node start --config config.toml
 
   stacker:
     networks:
