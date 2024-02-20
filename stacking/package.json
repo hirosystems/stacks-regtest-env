@@ -8,6 +8,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@stacks/stacking": "6.11.2-pr.3560789.0"
+    "@stacks/stacking": "6.11.4-pr.3d89ca1.0"
   }
 }
