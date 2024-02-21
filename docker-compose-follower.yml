@@ -60,7 +60,7 @@ services:
         until $(curl -o /dev/null -s stacks-node-miner:20443); do
             sleep 5
         done
-        exec stacks-node start --config=config.toml
+        exec stacks-node start --config config.toml
 
 networks:
   stacks:
