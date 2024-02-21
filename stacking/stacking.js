@@ -14,7 +14,7 @@ const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   const pubKey = getPublicKeyFromPrivate(privKey);
   const stxAddress = getAddressFromPrivateKey(privKey, TransactionVersion.Testnet);
   const signerPrivKey = makeRandomPrivKey();
-  const signerPubKey = getPublicKeyFromPrivate(signerPrivKey);
+  const signerPubKey = getPublicKeyFromPrivate(signerPrivKey.data);
   return {
     privKey, pubKey, stxAddress,
     btcAddr: publicKeyToBtcAddress(pubKey),
@@ -51,13 +51,14 @@ async function run() {
     return;
   }
 
-  const signerSignature = account.client.signPoxSignature({
+  const sigArgs = {
     topic: 'stack-stx',
-    rewardCycle: poxInfo.current_cycle.id,
-    poxAddress,
-    period: cycles,
+    rewardCycle: poxInfo.reward_cycle_id,
+    poxAddress: account.btcAddr,
+    period: stackingCycles,
     signerPrivateKey: account.signerPrivKey,
-  });
+  };
+  const signerSignature = account.client.signPoxSignature(sigArgs);
   const stackingArgs = {
     poxAddress: account.btcAddr,
     privateKey: account.privKey,
@@ -68,7 +69,7 @@ async function run() {
     signerKey: account.signerPubKey,
     signerSignature,
   };
-  console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs, ...signerSignature });
+  console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
   const stackResult = await account.client.stack(stackingArgs);
   console.log('Stacking tx result', stackResult);
   await new Promise(resolve => setTimeout(resolve, postTxWait * 1000));
