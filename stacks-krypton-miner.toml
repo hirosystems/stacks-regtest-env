@@ -2,6 +2,8 @@
 name = "krypton-node"
 rpc_bind = "0.0.0.0:20443"
 p2p_bind = "0.0.0.0:20444"
+data_url = "http://127.0.0.1:20443"
+p2p_address = "127.0.0.1:20443"
 working_dir = "$DATA_DIR"
 
 seed = "$MINER_SEED"
@@ -11,14 +13,20 @@ miner = true
 use_test_genesis_chainstate = true
 pox_sync_sample_secs = 0
 wait_time_for_blocks = 0
-wait_time_for_microblocks = 50
+wait_time_for_microblocks = 0
+mine_microblocks = false
 microblock_frequency = 1000
 # mine_microblocks = true
 # max_microblocks = 10
 
 [miner]
-first_attempt_time_ms = 5000
-subsequent_attempt_time_ms = 5000
+min_tx_fee = 1
+first_attempt_time_ms = 180_000
+second_attempt_time_ms = 360_000
+wait_for_block_download = false
+microblock_attempt_time_ms = 10
+self_signing_seed = 1
+mining_key = "19ec1c3e31d139c989a23a27eac60d1abfad5277d3ae9604242514c738258efa01"
 $REWARD_RECIPIENT_CONF
 
 [connection_options]
@@ -32,9 +40,12 @@ public_ip_address = "1.1.1.1:1234"
 
 [burnchain]
 chain = "bitcoin"
-mode = "neon"
+mode = "nakamoto-neon"
 poll_time_secs = 1
-pox_2_activation = $STACKS_POX2_HEIGHT
+magic_bytes = "T3"
+pox_prepare_length = 5
+pox_reward_length = 10
+burn_fee_cap = 20_000
 
 ### bitcoind-regtest connection info
 peer_host = "$BITCOIN_PEER_HOST"
@@ -97,6 +108,16 @@ amount = 10000000000000000
 address = "ST1HB1T8WRNBYB0Y3T7WXZS38NKKPTBR3EG9EPJKR"
 amount = 10000000000000000
 # secretKey = "c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01"
+
+[[ustx_balance]]
+address = "ST2PGGD0ZXAWEMY4EZ025RD1X47EEVH287SQKA8BC"
+amount = 10000000000000000
+# secretKey = "975b251dd7809469ef0c26ec3917971b75c51cd73a022024df4bf3b232cc2dc001"
+
+[[ustx_balance]]
+address = "ST29V10QEA7BRZBTWRFC4M70NJ4J6RJB5P1C6EE84"
+amount = 10000000000000000
+# secretKey = "0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01"
 
 [[ustx_balance]]
 address = "STRYYQQ9M8KAF4NS7WNZQYY59X93XEKR31JP64CP"

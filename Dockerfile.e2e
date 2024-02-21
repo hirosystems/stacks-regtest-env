@@ -100,9 +100,11 @@ ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
 ARG STACKS_25_HEIGHT=112
 ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
 
-# do not boot into epoch3.0 for now (it doesn't work yet)
-ARG STACKS_30_HEIGHT=999999 
+ARG STACKS_30_HEIGHT=132
 ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
+
+ARG STACKS_PREHEAT_FINISH_HEIGHT=150
+ENV STACKS_PREHEAT_FINISH_HEIGHT=$STACKS_PREHEAT_FINISH_HEIGHT
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
@@ -134,6 +136,33 @@ const server = http.createServer((req, res) => {
 EOM
 EOF
 
+# Create Stacking script
+RUN npm init -y && npm i @stacks/stacking@6
+RUN <<EOF
+cat > /root/stack.js <<'EOM'
+  const { StackingClient } = require('@stacks/stacking');
+  const { StacksTestnet } = require('@stacks/network');
+  console.log('Stacking with args:', process.argv.slice(2));
+  const network = new StacksTestnet({ url: 'http://localhost:20443' });
+  const address = 'ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS';
+  const client = new StackingClient(address, network);
+  client.stack({
+    amountMicroStx: parseInt(process.argv[2]),
+    burnBlockHeight: parseInt(process.argv[3]),
+    poxAddress: 'mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP',
+    cycles: 12,
+    privateKey: '08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01',
+    fee: 1000,
+    nonce: 0,
+  })
+    .then(r => console.log('Stacked', r))
+    .catch(e => {
+      console.error('Error stacking', e);
+      process.exit(1);
+    });
+EOM
+EOF
+
 # Bootstrap chainstates
 SHELL ["/bin/bash", "-ce"]
 RUN <<EOF
@@ -155,7 +184,7 @@ RUN <<EOF
   export STACKS_EVENT_OBSERVER="127.0.0.1:3998"
   mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   while true; do
@@ -167,27 +196,39 @@ RUN <<EOF
     sleep 0.5s
   done
 
+  DEFAULT_TIMEOUT=$(($(date +%s) + 30))
+  SENT_STACKING=0
   while true; do
     TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
     CONFS=$(echo "$TX" | jq '.[].confirmations')
-    if [ "$CONFS" = "0" ]; then
-      echo "Detected Stacks mining mempool tx, mining btc block..."
+    if [ "$CONFS" = "0" ] || [ $(date +%s) -gt $DEFAULT_TIMEOUT ]; then
+      if [ $(date +%s) -gt $DEFAULT_TIMEOUT ]; then
+        echo "Timed out waiting for a mempool tx, mining a btc block..."
+      else
+        echo "Detected Stacks mining mempool tx, mining btc block..."
+      fi
       bitcoin-cli generatetoaddress 1 $BTC_ADDR
+      DEFAULT_TIMEOUT=$(($(date +%s) + 30))
       chain_height=$(bitcoin-cli getblockcount)
       echo "Current Bitcoin chain height: $chain_height"
     
-      while true; do
-        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
-        if [ "$HEIGHT" = "$chain_height" ]; then
-          echo "Stacks node caught up to Bitcoin block $HEIGHT"
-          break
-        else
-          echo "Stacks node burn height: $HEIGHT, waiting for $chain_height"
-        fi
-        sleep 0.1s
-      done
+      POX_CONTRACT=$(curl -s localhost:20443/v2/pox | jq -r '.contract_id')
+      BURN_HEIGHT=$(curl -s localhost:20443/v2/pox | jq -r '.current_burnchain_block_height')
+      echo "POX contract check $BURN_HEIGHT $POX_CONTRACT"
+      if [ "$POX_CONTRACT" = "ST000000000000000000002AMW42H.pox-4" ] && [ "$SENT_STACKING" = "0" ]; then
+        echo "POX contract is pox-4"
+        SENT_STACKING=1
+        # issue a stack-stx tx, required for epoch3.0 transition
+        POX_STATE=$(curl -s localhost:20443/v2/pox)
+        echo "Stack STX tx for epoch3.0 transition"
+        echo "$POX_STATE" | jq '.'
+        MIN_STACKING_AMOUNT="8500000000000000"
+        BURN_HEIGHT=$(echo $POX_STATE | jq '.current_burnchain_block_height + 1')
+        node /root/stack.js $MIN_STACKING_AMOUNT $BURN_HEIGHT
+        sleep 5s
+      fi
 
-      if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
+      if [ "$chain_height" = "$STACKS_PREHEAT_FINISH_HEIGHT" ]; then
         break
       fi
 
@@ -233,7 +274,7 @@ cat > run.sh <<'EOM'
   bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
 
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   function start_miner() {

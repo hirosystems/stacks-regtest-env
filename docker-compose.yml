@@ -9,6 +9,7 @@ x-common-vars:
   - &BITCOIN_RPC_USER btc
   - &BITCOIN_RPC_PASS btc
   - &MINE_INTERVAL ${MINE_INTERVAL:-0.5s}
+  - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-600s} # 10 minute bitcoin block times in epoch 3
   - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-101}
   - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-102}
   - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
@@ -17,7 +18,7 @@ x-common-vars:
   - &STACKS_23_HEIGHT ${STACKS_23_HEIGHT:-106}
   - &STACKS_24_HEIGHT ${STACKS_24_HEIGHT:-107}
   - &STACKS_25_HEIGHT ${STACKS_25_HEIGHT:-108}
-  - &STACKS_30_HEIGHT ${STACKS_30_HEIGHT:-999999} # do not boot into epoch3.0 for now (it doesn't work yet)
+  - &STACKS_30_HEIGHT ${STACKS_30_HEIGHT:-125}
   - &REWARD_RECIPIENT ${REWARD_RECIPIENT:-STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN} # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 
 services:
@@ -58,7 +59,9 @@ services:
     environment:
       BTC_ADDR: *BTC_ADDR
       MINE_INTERVAL: *MINE_INTERVAL
+      MINE_INTERVAL_EPOCH3: *MINE_INTERVAL_EPOCH3
       INIT_BLOCKS: 101
+      STACKS_30_HEIGHT: *STACKS_30_HEIGHT
     entrypoint:
       - /bin/bash
       - -c
@@ -67,23 +70,36 @@ services:
         trap "exit" INT TERM
         trap "kill 0" EXIT
         bitcoin-cli -rpcconnect=bitcoind -rpcwait getmininginfo
-        bitcoin-cli -rpcconnect=bitcoind createwallet ""
+        bitcoin-cli -rpcconnect=bitcoind -named createwallet wallet_name=main descriptors=false
         bitcoin-cli -rpcconnect=bitcoind importaddress $${BTC_ADDR} "" false
         bitcoin-cli -rpcconnect=bitcoind generatetoaddress $${INIT_BLOCKS} $${BTC_ADDR}
+        DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
         while true; do
           TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
           CONFS=$$(echo "$${TX}" | jq '.[].confirmations')
-          if [ "$${CONFS}" = "0" ]; then
-            echo "Detected Stacks mining mempool tx, mining btc block..."
+          if [ "$${CONFS}" = "0" ] || [ $$(date +%s) -gt $$DEFAULT_TIMEOUT ]; then
+            if [ $$(date +%s) -gt $$DEFAULT_TIMEOUT ]; then
+              echo "Timed out waiting for a mempool tx, mining a btc block..."
+            else
+              echo "Detected Stacks mining mempool tx, mining btc block..."
+            fi
             bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${BTC_ADDR}"
+            DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
           else
             echo "No Stacks mining tx detected"
           fi
-          sleep $${MINE_INTERVAL} &
+
+          SLEEP_DURATION=$${MINE_INTERVAL}
+          BLOCK_HEIGHT=$$(bitcoin-cli -rpcconnect=bitcoind getblockcount)
+          if [ "$${BLOCK_HEIGHT}" -gt $$(( $${STACKS_30_HEIGHT} + 5 )) ]; then
+            echo "In Epoch3, sleeping for $${MINE_INTERVAL_EPOCH3} seconds..."
+            SLEEP_DURATION=$${MINE_INTERVAL_EPOCH3}
+          fi
+          sleep $${SLEEP_DURATION} &
           wait || exit 0
         done
 
-  stacks-node-miner:
+  stacks-node:
     networks:
       - stacks
     build:
@@ -103,7 +119,7 @@ services:
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
-      # STACKS_EVENT_OBSERVER: stacks-api:3700 # uncomment if using API
+      STACKS_EVENT_OBSERVER: stacks-api:3700
       DATA_DIR: /chainstate/stacks-blockchain-miner-data
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
@@ -132,61 +148,86 @@ services:
         mkdir -p $${DATA_DIR}
         rm -rf $${DATA_DIR}/*
         envsubst < config.toml.in > config.toml
-        # bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
-        exec stacks-node start --config=config.toml
+        bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
+        exec stacks-node start --config config.toml
 
-  ##################################
-  ##### UNCOMMENT IF USING API #####
-  ##################################
-  # postgres:
-  #   image: "postgres:15"
-  #   ports:
-  #     - "5490:5490"
-  #   volumes:
-  #     - chainstate:/chainstate
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: stacks_blockchain_api
-  #     PGPORT: 5490
-  #     PGDATA: /chainstate/pg-data
+  stacker:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacker
+    environment:
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      STACKING_CYCLES: 2
+      STACKING_KEYS: 08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01,ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301,e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01
+    depends_on:
+      - stacks-node
 
-  # stacks-api:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.stacks-api
-  #     args:
-  #       GIT_COMMIT: 4a332f353ee10802fa7b04e888b32e54d010a69d
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - "3999:3999"
-  #   expose:
-  #     - "3700"
-  #   environment:
-  #     NODE_ENVIRONMENT: production
-  #     STACKS_API_LOG_LEVEL: debug
-  #     STACKS_CHAIN_ID: "0x80000000"
-  #     STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
-  #     STACKS_BLOCKCHAIN_API_PORT: 3999
-  #     STACKS_CORE_EVENT_HOST: "0.0.0.0"
-  #     STACKS_CORE_EVENT_PORT: 3700
-  #     PG_HOST: postgres
-  #     PG_PORT: 5490
-  #     PG_USER: postgres
-  #     PG_PASSWORD: postgres
-  #     PG_DATABASE: stacks_blockchain_api
-  #     PG_SCHEMA: public
-  #     STACKS_CORE_RPC_HOST: stacks-node
-  #     STACKS_CORE_RPC_PORT: 20443
-  #     BTC_RPC_HOST: http://bitcoind
-  #     BTC_RPC_PORT: 18443
-  #     BTC_RPC_USER: btc
-  #     BTC_RPC_PW: btc
-  #     BTC_FAUCET_PK: *MINER_SEED
-  ##################################
-  ##### UNCOMMENT IF USING API #####
-  ##################################
+  tx-broadcaster:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.tx-broadcaster
+    environment:
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      ACCOUNT_KEYS: 0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01,975b251dd7809469ef0c26ec3917971b75c51cd73a022024df4bf3b232cc2dc001,c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01
+    depends_on:
+      - stacks-node
+
+  postgres:
+    networks:
+      - stacks
+    image: "postgres:15"
+    ports:
+      - "5490:5490"
+    volumes:
+      - chainstate:/chainstate
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stacks_blockchain_api
+      PGPORT: 5490
+      PGDATA: /chainstate/pg-data
+
+  stacks-api:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-api
+      args:
+        GIT_COMMIT: a5487312613a3179599fb7c128af9cfadc92d9a3
+    depends_on:
+      - postgres
+    ports:
+      - "3999:3999"
+    expose:
+      - "3700"
+    environment:
+      NODE_ENVIRONMENT: production
+      STACKS_API_LOG_LEVEL: debug
+      STACKS_CHAIN_ID: "0x80000000"
+      STACKS_BLOCKCHAIN_API_HOST: "0.0.0.0"
+      STACKS_BLOCKCHAIN_API_PORT: 3999
+      STACKS_CORE_EVENT_HOST: "0.0.0.0"
+      STACKS_CORE_EVENT_PORT: 3700
+      PG_HOST: postgres
+      PG_PORT: 5490
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DATABASE: stacks_blockchain_api
+      PG_SCHEMA: public
+      STACKS_CORE_RPC_HOST: stacks-node
+      STACKS_CORE_RPC_PORT: 20443
+      BTC_RPC_HOST: http://bitcoind
+      BTC_RPC_PORT: 18443
+      BTC_RPC_USER: btc
+      BTC_RPC_PW: btc
+      BTC_FAUCET_PK: *MINER_SEED
 
 networks:
   stacks:

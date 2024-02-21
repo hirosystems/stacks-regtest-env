@@ -1,4 +1,4 @@
-FROM rust:bullseye as builder
+FROM rust:bookworm as builder
 
 # TODO: is there a built-in required arg syntax?
 ARG GIT_COMMIT
@@ -18,13 +18,13 @@ RUN git init && \
 
 RUN cargo build --package stacks-node --bin stacks-node --release
 
-FROM debian:bullseye-backports
+FROM debian:bookworm
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
 
-COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=dobtc/bitcoin:25.1 /opt/bitcoin-*/bin /usr/local/bin
 
-RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
+RUN apt-get update && apt-get install -y curl gettext-base jq
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /root

@@ -1,0 +1,13 @@
+{
+  "name": "stacking",
+  "version": "1.0.0",
+  "description": "",
+  "main": "stacking.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@stacks/stacking": "6.11.4-pr.3d89ca1.0"
+  }
+}
