@@ -1,6 +1,6 @@
 const { StackingClient } = require('@stacks/stacking');
 const { StacksTestnet } = require('@stacks/network');
-const { getAddressFromPrivateKey, TransactionVersion } = require('@stacks/transactions');
+const { getAddressFromPrivateKey, TransactionVersion, makeRandomPrivKey } = require('@stacks/transactions');
 const { getPublicKeyFromPrivate, publicKeyToBtcAddress } = require('@stacks/encryption');
 const crypto = require('crypto');
 
@@ -13,10 +13,13 @@ const network = new StacksTestnet({ url });
 const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   const pubKey = getPublicKeyFromPrivate(privKey);
   const stxAddress = getAddressFromPrivateKey(privKey, TransactionVersion.Testnet);
+  const signerPrivKey = makeRandomPrivKey();
+  const signerPubKey = getPublicKeyFromPrivate(signerPrivKey.data);
   return {
     privKey, pubKey, stxAddress,
     btcAddr: publicKeyToBtcAddress(pubKey),
-    signerKey: crypto.randomBytes(33).toString('hex'),
+    signerPrivKey: signerPrivKey,
+    signerPubKey: signerPubKey,
     client: new StackingClient(stxAddress, network),
   };
 });
@@ -47,6 +50,15 @@ async function run() {
     console.log(`No unlocked account available for stacking`);
     return;
   }
+
+  const sigArgs = {
+    topic: 'stack-stx',
+    rewardCycle: poxInfo.reward_cycle_id,
+    poxAddress: account.btcAddr,
+    period: stackingCycles,
+    signerPrivateKey: account.signerPrivKey,
+  };
+  const signerSignature = account.client.signPoxSignature(sigArgs);
   const stackingArgs = {
     poxAddress: account.btcAddr,
     privateKey: account.privKey,
@@ -54,10 +66,11 @@ async function run() {
     burnBlockHeight: poxInfo.current_burnchain_block_height,
     cycles: stackingCycles,
     fee: 1000,
-    signerKey: account.signerKey,
+    signerKey: account.signerPubKey,
+    signerSignature,
   };
-  console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs });
-  const stackResult = await account.client.stack(stackingArgs)
+  console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
+  const stackResult = await account.client.stack(stackingArgs);
   console.log('Stacking tx result', stackResult);
   await new Promise(resolve => setTimeout(resolve, postTxWait * 1000));
 }
