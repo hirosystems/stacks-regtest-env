@@ -9,7 +9,7 @@ x-common-vars:
   - &BITCOIN_RPC_USER btc
   - &BITCOIN_RPC_PASS btc
   - &MINE_INTERVAL ${MINE_INTERVAL:-0.5s}
-  - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-5s} # 10 minute bitcoin block times in epoch 3
+  - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-600s} # 10 minute bitcoin block times in epoch 3
   - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-101}
   - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-102}
   - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
@@ -119,7 +119,7 @@ services:
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
-      # STACKS_EVENT_OBSERVER: stacks-api:3700
+      STACKS_EVENT_OBSERVER: stacks-api:3700
       DATA_DIR: /chainstate/stacks-blockchain-miner-data
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
@@ -179,8 +179,6 @@ services:
       - stacks-node
 
   postgres:
-    profiles:
-      - disabled
     networks:
       - stacks
     image: "postgres:15"
@@ -196,15 +194,13 @@ services:
       PGDATA: /chainstate/pg-data
 
   stacks-api:
-    profiles:
-      - disabled
     networks:
       - stacks
     build:
       context: .
       dockerfile: Dockerfile.stacks-api
       args:
-        GIT_COMMIT: 191c6f572a137cb601b7fb59ed2fa5c1eee22bc1
+        GIT_COMMIT: a5487312613a3179599fb7c128af9cfadc92d9a3
     depends_on:
       - postgres
     ports:
