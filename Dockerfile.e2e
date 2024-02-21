@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:bullseye as builder
+FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=feat/epoch-2.4
+ARG GIT_COMMIT=5a4b3882e6f1d80dce73302c44e87271894103b8
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -38,17 +38,20 @@ RUN <<EOF
     git reset --hard FETCH_HEAD
   fi
 
+  apt-get update && apt-get install -y libclang-dev
+  rustup toolchain install stable
+  rustup component add rustfmt --toolchain stable
   CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
 EOF
 
-FROM debian:bullseye-backports
+FROM debian:bookworm-backports
 
 COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
-COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=dobtc/bitcoin:25.1 /opt/bitcoin-*/bin /usr/local/bin
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+RUN apt-get update && apt-get install -y curl gettext-base jq
+RUN curl -SLO https://deb.nodesource.com/nsolid_setup_deb.sh && chmod 500 nsolid_setup_deb.sh && ./nsolid_setup_deb.sh 20 && apt-get install nodejs -y
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 VOLUME /chainstate
@@ -94,6 +97,13 @@ ENV STACKS_23_HEIGHT=$STACKS_23_HEIGHT
 ARG STACKS_24_HEIGHT=111
 ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
 
+ARG STACKS_25_HEIGHT=112
+ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
+
+# do not boot into epoch3.0 for now (it doesn't work yet)
+ARG STACKS_30_HEIGHT=999999 
+ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
+
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
 ARG REWARD_RECIPIENT
@@ -135,8 +145,8 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
-  bitcoin-cli createwallet ""
-  bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
+  bitcoin-cli -named createwallet wallet_name=main descriptors=false load_on_startup=true
+  bitcoin-cli -rpcwallet=main importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
   node event-observer.js &
@@ -145,7 +155,7 @@ RUN <<EOF
   export STACKS_EVENT_OBSERVER="127.0.0.1:3998"
   mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   while true; do
@@ -158,7 +168,7 @@ RUN <<EOF
   done
 
   while true; do
-    TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+    TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
     CONFS=$(echo "$TX" | jq '.[].confirmations')
     if [ "$CONFS" = "0" ]; then
       echo "Detected Stacks mining mempool tx, mining btc block..."
@@ -177,7 +187,7 @@ RUN <<EOF
         sleep 0.1s
       done
 
-      if [ "$chain_height" = "$STACKS_24_HEIGHT" ]; then
+      if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
         break
       fi
 
@@ -223,12 +233,12 @@ cat > run.sh <<'EOM'
   bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
 
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   function start_miner() {
     while true; do
-      TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+      TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."
