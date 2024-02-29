@@ -18,8 +18,8 @@ const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   return {
     privKey, pubKey, stxAddress,
     btcAddr: publicKeyToBtcAddress(pubKey),
-    signerPrivKey: signerPrivKey,
-    signerPubKey: signerPubKey,
+    signerPrivKey: privKey,
+    signerPubKey: pubKey,
     client: new StackingClient(stxAddress, network),
   };
 });
