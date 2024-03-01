@@ -119,7 +119,6 @@ services:
     environment:
       # STACKS_LOG_TRACE: 1 # uncomment for trace logging
       # STACKS_LOG_DEBUG: 1
-      STACKS_EVENT_OBSERVER: stacks-api:3700
       DATA_DIR: /chainstate/stacks-blockchain-miner-data
       BITCOIN_PEER_HOST: bitcoind
       BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
