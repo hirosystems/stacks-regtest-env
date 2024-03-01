@@ -29,26 +29,45 @@ async function run() {
     console.log(`Pox contract is not .pox-4, skipping stacking (contract=${poxInfo.contract_id})`);
     return;
   }
-  const nextCycleStx = poxInfo.next_cycle.stacked_ustx;
-  let minStx = poxInfo.next_cycle.min_threshold_ustx;
-  // Bump min threshold by 50% to avoid getting stuck if threshold increases
-  minStx = Math.floor(minStx * 1.5);
-  if (nextCycleStx >= minStx) {
-    console.log(`Next cycle has enough stacked, skipping stacking (stacked=${nextCycleStx}, min=${minStx})`);
-    return;
-  }
-  let account;
-  for (const a of accounts) {
-    const lockedHeight = await a.client.getAccountBalanceLocked();
-    if (lockedHeight === 0n) {
-      account = a;
-      break;
+  const nextCycleStartHeight = poxInfo.next_cycle.prepare_phase_start_block_height;
+  
+  const accountInfos = await Promise.all(accounts.map(async a => {
+    const info = await a.client.getAccountStatus();
+    const unlockHeight = Number(info.unlock_height);
+    const lockedAmount = BigInt(info.locked);
+    return { ...a, info, unlockHeight, lockedAmount };
+  }));
+
+  let txSubmitted = false;
+
+  await Promise.all(accountInfos.map(async account => {
+    if (account.lockedAmount === 0n) {
+      console.log(`Account ${account.stxAddress} is unlocked, stack-stx required`);
+      await stackStx(poxInfo, account);
+      txSubmitted = true;
+      return;
     }
+    if (account.unlockHeight <= (nextCycleStartHeight - 2)) {
+      console.log(`Account ${account.stxAddress} unlocks before next cycle ${account.unlockHeight} vs ${nextCycleStartHeight}, stack-extend required`);
+      await stackExtend(poxInfo, account);
+      txSubmitted = true;
+      return;
+    }
+    console.log(`Account ${account.stxAddress} is locked for next cycle, skipping stacking`);
+  }));
+
+  if (txSubmitted) {
+    await new Promise(resolve => setTimeout(resolve, postTxWait * 1000));
   }
-  if (!account) {
-    console.log(`No unlocked account available for stacking`);
-    return;
-  }
+}
+
+/**
+ * @param {import('@stacks/stacking').PoxInfo} poxInfo
+ * @param {typeof accounts[0]} account
+ */
+async function stackStx(poxInfo, account) {
+  // Bump min threshold by 50% to avoid getting stuck if threshold increases
+  let minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
 
   const sigArgs = {
     topic: 'stack-stx',
@@ -68,10 +87,35 @@ async function run() {
     signerKey: account.signerPubKey,
     signerSignature,
   };
-  console.log('Stacking with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
+  console.log('Stack-stx with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
   const stackResult = await account.client.stack(stackingArgs);
-  console.log('Stacking tx result', stackResult);
-  await new Promise(resolve => setTimeout(resolve, postTxWait * 1000));
+  console.log('Stack-stx tx result', stackResult);
+}
+
+/**
+ * @param {import('@stacks/stacking').PoxInfo} poxInfo
+ * @param {typeof accounts[0]} account
+ */
+async function stackExtend(poxInfo, account) {
+  const sigArgs = {
+    topic: 'stack-extend',
+    rewardCycle: poxInfo.reward_cycle_id,
+    poxAddress: account.btcAddr,
+    period: stackingCycles,
+    signerPrivateKey: account.signerPrivKey,
+  };
+  const signerSignature = account.client.signPoxSignature(sigArgs);
+  const stackingArgs = {
+    poxAddress: account.btcAddr,
+    privateKey: account.privKey,
+    extendCycles: stackingCycles,
+    fee: 1000,
+    signerKey: account.signerPubKey,
+    signerSignature,
+  };
+  console.log('Stack-extend with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
+  const stackResult = await account.client.stackExtend(stackingArgs);
+  console.log('Stack-extend tx result', stackResult);
 }
 
 async function loop() {
