@@ -25,8 +25,8 @@ first_attempt_time_ms = 180_000
 second_attempt_time_ms = 360_000
 wait_for_block_download = false
 microblock_attempt_time_ms = 10
-self_signing_seed = 1
-mining_key = "19ec1c3e31d139c989a23a27eac60d1abfad5277d3ae9604242514c738258efa01"
+#self_signing_seed = 1
+#mining_key = "19ec1c3e31d139c989a23a27eac60d1abfad5277d3ae9604242514c738258efa01"
 $REWARD_RECIPIENT_CONF
 
 [connection_options]
