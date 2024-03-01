@@ -40,6 +40,14 @@ async function run() {
 
   let txSubmitted = false;
 
+  let forceExtend = false;
+  // Bump min threshold by 50% to avoid getting stuck if threshold increases
+  const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
+  const nextCycleStx = poxInfo.next_cycle.stacked_ustx;
+  if (nextCycleStx < minStx) {
+    forceExtend = true;
+  }
+
   await Promise.all(accountInfos.map(async account => {
     if (account.lockedAmount === 0n) {
       console.log(`Account ${account.stxAddress} is unlocked, stack-stx required`);
@@ -47,7 +55,7 @@ async function run() {
       txSubmitted = true;
       return;
     }
-    if (account.unlockHeight <= (nextCycleStartHeight - 2)) {
+    if (forceExtend || account.unlockHeight <= (nextCycleStartHeight - 5)) {
       console.log(`Account ${account.stxAddress} unlocks before next cycle ${account.unlockHeight} vs ${nextCycleStartHeight}, stack-extend required`);
       await stackExtend(poxInfo, account);
       txSubmitted = true;
