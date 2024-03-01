@@ -47,10 +47,16 @@ events_keys = ["*"]
 
 # Add stacks-signer as an event observer
 [[events_observer]]
-endpoint = "stacks-signer:3700"
+endpoint = "stacks-signer-1:30001"
 retry_count = 255
 include_data_events = false
-events_keys = ["*"]
+events_keys = ["stackerdb", "block_proposal"]
+
+[[events_observer]]
+endpoint = "stacks-signer-2:30002"
+retry_count = 255
+include_data_events = false
+events_keys = ["stackerdb", "block_proposal"]
 
 [burnchain]
 chain = "bitcoin"

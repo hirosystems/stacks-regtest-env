@@ -228,7 +228,7 @@ services:
       BTC_RPC_PW: btc
       BTC_FAUCET_PK: *MINER_SEED
 
-  stacks-signer:
+  stacks-signer-1:
     networks:
       - stacks
     build:
@@ -236,14 +236,55 @@ services:
       dockerfile: Dockerfile.stacks-signer
       args:
         GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+    depends_on:
+      - stacks-node
     volumes:
       - ./signer-0.toml:/root/config.toml.in
     environment:
       STACKS_NODE_HOST: stacks-node:20443
-      STACKS_SIGNER_ENDPOINT: stacks-api
+      STACKS_SIGNER_ENDPOINT: 0.0.0.0:30001
       STACKS_CORE_EVENT_PORT: 3700
       STACKS_SIGNER_LOG_LEVEL: debug
       SIGNER_PRIVATE_KEY: 08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        # signer cannot resolve hostnames..
+        export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
+        echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
+        envsubst < config.toml.in > config.toml
+        exec stacks-signer run --config config.toml --reward-cycle 0
+
+  stacks-signer-2:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-signer
+      args:
+        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+    depends_on:
+      - stacks-node
+    volumes:
+      - ./signer-0.toml:/root/config.toml.in
+    environment:
+      STACKS_NODE_HOST: stacks-node:20443
+      STACKS_SIGNER_ENDPOINT: 0.0.0.0:30002
+      STACKS_CORE_EVENT_PORT: 3700
+      STACKS_SIGNER_LOG_LEVEL: debug
+      SIGNER_PRIVATE_KEY: ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        # signer cannot resolve hostnames..
+        export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
+        echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
+        envsubst < config.toml.in > config.toml
+        exec stacks-signer run --config config.toml --reward-cycle 0
 
 networks:
   stacks:
