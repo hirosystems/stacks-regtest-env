@@ -255,7 +255,7 @@ services:
         export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
         echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
         envsubst < config.toml.in > config.toml
-        exec stacks-signer run --config config.toml --reward-cycle 0
+        exec stacks-signer run --config config.toml --reward-cycle 1
 
   stacks-signer-2:
     networks:
@@ -284,7 +284,36 @@ services:
         export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
         echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
         envsubst < config.toml.in > config.toml
-        exec stacks-signer run --config config.toml --reward-cycle 0
+        exec stacks-signer run --config config.toml --reward-cycle 1
+
+  stacks-signer-3:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-signer
+      args:
+        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+    depends_on:
+      - stacks-node
+    volumes:
+      - ./signer-0.toml:/root/config.toml.in
+    environment:
+      STACKS_NODE_HOST: stacks-node:20443
+      STACKS_SIGNER_ENDPOINT: 0.0.0.0:30003
+      STACKS_CORE_EVENT_PORT: 3700
+      STACKS_SIGNER_LOG_LEVEL: debug
+      SIGNER_PRIVATE_KEY: e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        # signer cannot resolve hostnames..
+        export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
+        echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
+        envsubst < config.toml.in > config.toml
+        exec stacks-signer run --config config.toml --reward-cycle 1
 
 networks:
   stacks:

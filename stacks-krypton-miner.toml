@@ -58,6 +58,12 @@ retry_count = 255
 include_data_events = false
 events_keys = ["stackerdb", "block_proposal"]
 
+[[events_observer]]
+endpoint = "stacks-signer-3:30003"
+retry_count = 255
+include_data_events = false
+events_keys = ["stackerdb", "block_proposal"]
+
 [burnchain]
 chain = "bitcoin"
 mode = "nakamoto-neon"
