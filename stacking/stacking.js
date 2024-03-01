@@ -23,7 +23,21 @@ const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   };
 });
 
+async function waitForSetup() {
+  try {
+    await accounts[0].client.getPoxInfo();
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('ENOTFOUND')) {
+        console.log(`Stacks node not found, waiting...`)
+        setTimeout(waitForSetup, 1000);
+      }
+    }
+  }
+}
+
 async function run() {
+  await waitForSetup();
   const poxInfo = await accounts[0].client.getPoxInfo();
   if (!poxInfo.contract_id.endsWith('.pox-4')) {
     console.log(`Pox contract is not .pox-4, skipping stacking (contract=${poxInfo.contract_id})`);

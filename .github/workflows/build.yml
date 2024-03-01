@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: 90e36dfab4e6d78b7996535d52c62d82a7e75699
+  STACKS_BLOCKCHAIN_COMMIT: d0f5712332619b3140badc2d25856975d2747004
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

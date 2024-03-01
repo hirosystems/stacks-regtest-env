@@ -3,7 +3,7 @@
 FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=90e36dfab4e6d78b7996535d52c62d82a7e75699
+ARG GIT_COMMIT=d0f5712332619b3140badc2d25856975d2747004
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
