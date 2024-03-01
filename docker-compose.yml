@@ -234,6 +234,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.stacks-signer
+      args:
+        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
     volumes:
       - ./signer-0.toml:/root/config.toml.in
     environment:
