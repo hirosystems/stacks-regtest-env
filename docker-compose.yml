@@ -233,7 +233,7 @@ services:
       - stacks
     build:
       context: .
-      dockerfile: Dockerfile.stacks-signer
+      dockerfile: Dockerfile.stacks-node
       args:
         GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
     depends_on:
@@ -262,7 +262,7 @@ services:
       - stacks
     build:
       context: .
-      dockerfile: Dockerfile.stacks-signer
+      dockerfile: Dockerfile.stacks-node
       args:
         GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
     depends_on:
@@ -291,7 +291,7 @@ services:
       - stacks
     build:
       context: .
-      dockerfile: Dockerfile.stacks-signer
+      dockerfile: Dockerfile.stacks-node
       args:
         GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
     depends_on:

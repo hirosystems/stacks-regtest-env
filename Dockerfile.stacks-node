@@ -16,11 +16,12 @@ RUN git init && \
     git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT" && \
     git reset --hard FETCH_HEAD
 
-RUN cargo build --package stacks-node --bin stacks-node --release
+RUN cargo build --package stacks-node --package stacks-signer --bin stacks-node --bin stacks-signer
 
 FROM debian:bookworm
 
-COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
+COPY --from=builder /stacks/target/debug/stacks-node /usr/local/bin/
+COPY --from=builder /stacks/target/debug/stacks-signer /usr/local/bin/
 
 COPY --from=dobtc/bitcoin:25.1 /opt/bitcoin-*/bin /usr/local/bin
 
