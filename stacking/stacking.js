@@ -1,8 +1,7 @@
 const { StackingClient } = require('@stacks/stacking');
 const { StacksTestnet } = require('@stacks/network');
-const { getAddressFromPrivateKey, TransactionVersion, makeRandomPrivKey } = require('@stacks/transactions');
+const { getAddressFromPrivateKey, TransactionVersion, createStacksPrivateKey } = require('@stacks/transactions');
 const { getPublicKeyFromPrivate, publicKeyToBtcAddress } = require('@stacks/encryption');
-const crypto = require('crypto');
 
 const stackingInterval = process.env.STACKING_INTERVAL ?? 2;
 const postTxWait = process.env.POST_TX_WAIT ?? 10;
@@ -13,13 +12,13 @@ const network = new StacksTestnet({ url });
 const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   const pubKey = getPublicKeyFromPrivate(privKey);
   const stxAddress = getAddressFromPrivateKey(privKey, TransactionVersion.Testnet);
-  const signerPrivKey = makeRandomPrivKey();
+  const signerPrivKey = createStacksPrivateKey(privKey);
   const signerPubKey = getPublicKeyFromPrivate(signerPrivKey.data);
   return {
     privKey, pubKey, stxAddress,
     btcAddr: publicKeyToBtcAddress(pubKey),
-    signerPrivKey: privKey,
-    signerPubKey: pubKey,
+    signerPrivKey: signerPrivKey,
+    signerPubKey: signerPubKey,
     client: new StackingClient(stxAddress, network),
   };
 });
