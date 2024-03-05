@@ -1,5 +1,5 @@
-const { StacksTestnet } = require('@stacks/network');
-const { TransactionVersion, getAddressFromPrivateKey, getNonce, makeSTXTokenTransfer, broadcastTransaction } = require('@stacks/transactions');
+import { StacksTestnet } from '@stacks/network';
+import { TransactionVersion, getAddressFromPrivateKey, getNonce, makeSTXTokenTransfer, broadcastTransaction } from '@stacks/transactions';
 
 const broadcastInterval = process.env.BROADCAST_INTERVAL ?? 2;
 const postTxWait = process.env.POST_TX_WAIT ?? 2;

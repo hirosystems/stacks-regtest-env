@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "stacking.js",
+  "type": "module",
   "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@stacks/stacking": "6.11.4-pr.115847b.0"
+    "@stacks/encryption": "^6.12.0",
+    "@stacks/network": "^6.11.3",
+    "@stacks/stacking": "6.11.4-pr.115847b.0",
+    "@stacks/transactions": "^6.12.0"
   }
 }

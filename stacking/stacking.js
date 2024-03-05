@@ -1,7 +1,7 @@
-const { StackingClient } = require('@stacks/stacking');
-const { StacksTestnet } = require('@stacks/network');
-const { getAddressFromPrivateKey, TransactionVersion, createStacksPrivateKey } = require('@stacks/transactions');
-const { getPublicKeyFromPrivate, publicKeyToBtcAddress } = require('@stacks/encryption');
+import { StackingClient } from '@stacks/stacking';
+import { StacksTestnet } from '@stacks/network';
+import { getAddressFromPrivateKey, TransactionVersion, createStacksPrivateKey } from '@stacks/transactions';
+import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
 
 const stackingInterval = process.env.STACKING_INTERVAL ?? 2;
 const postTxWait = process.env.POST_TX_WAIT ?? 10;
