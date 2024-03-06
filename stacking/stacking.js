@@ -27,12 +27,12 @@ async function waitForSetup() {
   try {
     await accounts[0].client.getPoxInfo();
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('ENOTFOUND')) {
-        console.log(`Stacks node not found, waiting...`)
-        setTimeout(waitForSetup, 1000);
-      }
+    if (/(ECONNREFUSED|ENOTFOUND)/.test(error.cause?.message)) {
+      console.log(`Stacks node not ready, waiting...`)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return waitForSetup();
     }
+    throw error;
   }
 }
 
