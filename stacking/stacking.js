@@ -23,6 +23,9 @@ const accounts = process.env.STACKING_KEYS.split(',').map(privKey => {
   };
 });
 
+const MAX_U128 = 340282366920938463463374607431768211455n;
+const maxAmount = MAX_U128;
+
 async function waitForSetup() {
   try {
     await accounts[0].client.getPoxInfo();
@@ -90,13 +93,15 @@ async function run() {
 async function stackStx(poxInfo, account) {
   // Bump min threshold by 50% to avoid getting stuck if threshold increases
   let minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
-
+  const authId = Math.floor(Math.random() * 100000);
   const sigArgs = {
     topic: 'stack-stx',
     rewardCycle: poxInfo.reward_cycle_id,
     poxAddress: account.btcAddr,
     period: stackingCycles,
     signerPrivateKey: account.signerPrivKey,
+    authId,
+    maxAmount,
   };
   const signerSignature = account.client.signPoxSignature(sigArgs);
   const stackingArgs = {
@@ -108,6 +113,8 @@ async function stackStx(poxInfo, account) {
     fee: 1000,
     signerKey: account.signerPubKey,
     signerSignature,
+    authId,
+    maxAmount,
   };
   console.log('Stack-stx with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
   const stackResult = await account.client.stack(stackingArgs);
@@ -119,12 +126,15 @@ async function stackStx(poxInfo, account) {
  * @param {typeof accounts[0]} account
  */
 async function stackExtend(poxInfo, account) {
+  const authId = Math.floor(Math.random() * 100000);
   const sigArgs = {
     topic: 'stack-extend',
     rewardCycle: poxInfo.reward_cycle_id,
     poxAddress: account.btcAddr,
     period: stackingCycles,
     signerPrivateKey: account.signerPrivKey,
+    authId,
+    maxAmount,
   };
   const signerSignature = account.client.signPoxSignature(sigArgs);
   const stackingArgs = {
@@ -134,6 +144,8 @@ async function stackExtend(poxInfo, account) {
     fee: 1000,
     signerKey: account.signerPubKey,
     signerSignature,
+    authId,
+    maxAmount,
   };
   console.log('Stack-extend with args:', { addr: account.stxAddress, ...stackingArgs, ...sigArgs });
   const stackResult = await account.client.stackExtend(stackingArgs);
