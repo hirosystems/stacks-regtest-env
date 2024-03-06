@@ -2,7 +2,6 @@
   "name": "stacking",
   "version": "1.0.0",
   "description": "",
-  "main": "stacking.js",
   "type": "module",
   "scripts": {},
   "keywords": [],

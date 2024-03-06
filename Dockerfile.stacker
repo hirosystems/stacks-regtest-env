@@ -3,7 +3,7 @@ FROM node:18-bookworm as builder
 RUN apt-get update && apt-get install -y curl gettext-base jq
 
 WORKDIR /root
-COPY ./stacking/stacking.js ./stacking/package.json ./stacking/stacking.ts /root/
+COPY ./stacking/stacking.ts ./stacking/package.json ./stacking/stacking.ts /root/
 RUN npm i
 
 CMD ["npx", "tsx", "/root/stacking.ts"]

@@ -2,6 +2,9 @@ import { StackingClient } from '@stacks/stacking';
 import { StacksTestnet } from '@stacks/network';
 import { getAddressFromPrivateKey, TransactionVersion, createStacksPrivateKey } from '@stacks/transactions';
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
+import crypto from 'crypto';
+
+const randInt = () => crypto.randomInt(0, 0xFFFFFFFFFFFF);
 
 const stackingIntervalEnv = process.env.STACKING_INTERVAL;
 const stackingInterval = typeof stackingIntervalEnv === 'undefined' ? 2 : parseInt(stackingIntervalEnv, 10);
@@ -100,7 +103,7 @@ async function run() {
 async function stackStx(poxInfo, account) {
   // Bump min threshold by 50% to avoid getting stuck if threshold increases
   let minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
-  const authId = Math.floor(Math.random() * 100000);
+  const authId = randInt();
   const sigArgs = {
     topic: 'stack-stx',
     rewardCycle: poxInfo.reward_cycle_id,
@@ -133,7 +136,7 @@ async function stackStx(poxInfo, account) {
  * @param {typeof accounts[0]} account
  */
 async function stackExtend(poxInfo, account) {
-  const authId = Math.floor(Math.random() * 100000);
+  const authId = randInt();
   const sigArgs = {
     topic: 'stack-extend',
     rewardCycle: poxInfo.reward_cycle_id,
