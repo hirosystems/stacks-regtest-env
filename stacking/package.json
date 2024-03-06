@@ -8,10 +8,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@stacks/encryption": "6.11.3",
-    "@stacks/network": "6.11.3",
+    "@stacks/encryption": "6.11.4-pr.36558cf.0",
+    "@stacks/network": "6.11.4-pr.36558cf.0",
     "@stacks/stacking": "6.11.4-pr.36558cf.0",
-    "@stacks/transactions": "6.11.3"
+    "@stacks/transactions": "6.11.4-pr.36558cf.0"
   },
   "devDependencies": {
     "tsx": "4.7.1"
