@@ -253,9 +253,6 @@ services:
       - -c
       - |
         set -e
-        # signer cannot resolve hostnames..
-        export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
-        echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
         envsubst < config.toml.in > config.toml
         exec stacks-signer run --config config.toml --reward-cycle 1
 
@@ -282,9 +279,6 @@ services:
       - -c
       - |
         set -e
-        # signer cannot resolve hostnames..
-        export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
-        echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
         envsubst < config.toml.in > config.toml
         exec stacks-signer run --config config.toml --reward-cycle 1
 
@@ -311,9 +305,6 @@ services:
       - -c
       - |
         set -e
-        # signer cannot resolve hostnames..
-        export STACKS_NODE_HOST=$$(getent hosts $${STACKS_NODE_HOST%%:*} | awk '{ print $1 }'):$${STACKS_NODE_HOST##*:}
-        echo "Updated STACKS_NODE_HOST to $$STACKS_NODE_HOST"
         envsubst < config.toml.in > config.toml
         exec stacks-signer run --config config.toml --reward-cycle 1
 
