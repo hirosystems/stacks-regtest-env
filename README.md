@@ -2,6 +2,29 @@
 
 Easily run a Stacks node in Kypton mode with a Bitcoind regtest instance
 
+## Self-contained Stacks 3.0 image
+
+This repo uses Docker Compose to orchestrate multiple images and run a fully working Nakamoto Stacks environment. This includes:
+
+- A Bitcoin regtest node
+- A Stacks miner node
+- 3 Stacks signers
+- Scripts for monitoring and auto-stacking
+
+Make sure you have Docker and Docker Compose installed and running on your machine, then run:
+
+```bash
+./run.sh
+```
+
+This will output the logs from each service. You can view the logs for a single service with:
+
+```
+docker-compose logs $service_name
+```
+
+Add `-f` to automatically follow new logs. The service names can be found in [./docker-compose.yml](./docker-compose.yml), such as `stacks-node`, `signer-0`, and `monitor`.
+
 ## Self-contained Stacks 2.1 image
 
 This repo publishes a Docker image that contains a Stacks 2.1 node running in Krypton mode (local testnet). It bundles a `bitcoind` regtest instance and an auto-mining script.

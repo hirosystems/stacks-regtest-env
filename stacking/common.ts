@@ -8,7 +8,7 @@ import {
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
 import { StacksNodeApi } from '@stacks/api';
 import crypto from 'crypto';
-import { InfoApi, Configuration } from '@stacks/blockchain-api-client';
+import { InfoApi, Configuration, BlocksApi } from '@stacks/blockchain-api-client';
 
 export const nodeUrl = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 export const network = new StacksTestnet({ url: nodeUrl });
@@ -16,6 +16,7 @@ const apiConfig = new Configuration({
   basePath: nodeUrl,
 });
 export const infoApi = new InfoApi(apiConfig);
+export const blocksApi = new BlocksApi(apiConfig);
 
 export const EPOCH_30_START = parseEnvInt('STACKS_30_HEIGHT', true);
 export const EPOCH_25_START = parseEnvInt('STACKS_25_HEIGHT', true);

@@ -6,6 +6,7 @@ import {
   waitForSetup,
   EPOCH_30_START,
   didCrossPreparePhase,
+  blocksApi,
 } from './common';
 
 let lastBurnHeight = 0;
@@ -20,7 +21,13 @@ console.log('Exit from monitor:', EXIT_FROM_MONITOR);
 
 async function getInfo() {
   let { client } = accounts[0];
-  const [poxInfo, coreInfo] = await Promise.all([client.getPoxInfo(), infoApi.getCoreApiInfo()]);
+  const [poxInfo, coreInfo, blockInfo] = await Promise.all([
+    client.getPoxInfo(),
+    infoApi.getCoreApiInfo(),
+    blocksApi.getBlock({
+      heightOrHash: 'latest',
+    }),
+  ]);
   const { reward_cycle_id } = poxInfo;
   const [currentSigners, nextSigners] = await Promise.all([
     getSignerSet(reward_cycle_id),
@@ -29,6 +36,7 @@ async function getInfo() {
   return {
     poxInfo,
     coreInfo,
+    blockInfo,
     currentSigners,
     nextSigners,
     nextCycleId: reward_cycle_id + 1,
@@ -59,9 +67,10 @@ async function getSignerSet(cycle: number) {
 
 async function loop() {
   try {
-    const { poxInfo, coreInfo, ...info } = await getInfo();
+    const { poxInfo, coreInfo, blockInfo, ...info } = await getInfo();
     let { reward_cycle_id, current_burnchain_block_height } = poxInfo;
-    let { stacks_tip_height } = coreInfo;
+    // let { stacks_tip_height } = coreInfo;
+    let { height } = blockInfo;
     let showBurnMsg = false;
     let showPrepareMsg = false;
     let showCycleMsg = false;
@@ -82,16 +91,18 @@ async function loop() {
       lastRewardCycle = reward_cycle_id;
     }
 
-    if (stacks_tip_height !== lastStxHeight) {
+    if (height !== lastStxHeight) {
       showStxBlockMsg = true;
-      lastStxHeight = stacks_tip_height;
+      lastStxHeight = height;
       const now = new Date().getTime();
       lastStxBlockDiff = now - lastStxBlockTime;
       lastStxBlockTime = now;
     }
 
     if (showBurnMsg) {
-      console.log(`Burn block: ${current_burnchain_block_height}\tSTX block: ${stacks_tip_height}`);
+      console.log(
+        `Burn block: ${current_burnchain_block_height}\tSTX block: ${height}\t${blockInfo.tx_count} TX`
+      );
       if (current_burnchain_block_height === EPOCH_30_START) {
         console.log('Starting Nakamoto!');
       }
@@ -107,7 +118,9 @@ async function loop() {
 
     if (!showBurnMsg && showStxBlockMsg) {
       console.log(
-        `Nakamoto block: ${stacks_tip_height}\t (${(lastStxBlockDiff / 1000).toFixed(2)} seconds)`
+        `Nakamoto block: ${height}\t${blockInfo.tx_count} TX\t(${(lastStxBlockDiff / 1000).toFixed(
+          2
+        )} seconds) (${lastStxBlockDiff})`
       );
     }
 
@@ -145,8 +158,13 @@ async function loop() {
     let message = 'Caught error in monitor run loop';
     if (error instanceof Error) {
       message += `: ${error.message}`;
+    } else {
+      console.error(error);
     }
     console.error(message);
+    // if (!message.toLowerCase().includes('fetch failed')) {
+    //   throw error;
+    // }
   }
 }
 
@@ -166,5 +184,10 @@ async function run() {
   await waitForSetup();
   await runLoop();
 }
-
+process.on('SIGTERM', () => {
+  process.exit(0);
+});
+process.on('SIGINT', () => {
+  process.exit(0);
+});
 run();
