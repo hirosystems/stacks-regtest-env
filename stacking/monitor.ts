@@ -7,15 +7,19 @@ import {
   EPOCH_30_START,
   didCrossPreparePhase,
   blocksApi,
+  parseEnvInt,
 } from './common';
 
 let lastBurnHeight = 0;
 let lastStxHeight = 0;
 let lastRewardCycle = 0;
+let lastStxBlockTime = new Date().getTime();
+let lastStxBlockDiff = 0;
 
 console.log('Monitoring...');
 
 const EXIT_FROM_MONITOR = process.env.EXIT_FROM_MONITOR === '1';
+const monitorInterval = parseEnvInt('MONITOR_INTERVAL') ?? 2;
 
 console.log('Exit from monitor:', EXIT_FROM_MONITOR);
 
@@ -75,8 +79,6 @@ async function loop() {
     let showPrepareMsg = false;
     let showCycleMsg = false;
     let showStxBlockMsg = false;
-    let lastStxBlockTime = new Date().getTime();
-    let lastStxBlockDiff = 0;
 
     if (current_burnchain_block_height && current_burnchain_block_height !== lastBurnHeight) {
       if (didCrossPreparePhase(lastBurnHeight, current_burnchain_block_height)) {
@@ -120,7 +122,7 @@ async function loop() {
       console.log(
         `Nakamoto block: ${height}\t${blockInfo.tx_count} TX\t(${(lastStxBlockDiff / 1000).toFixed(
           2
-        )} seconds) (${lastStxBlockDiff})`
+        )} seconds)`
       );
     }
 
@@ -129,27 +131,6 @@ async function loop() {
       console.log(`New cycle started (${reward_cycle_id}) with ${signerCount} signers`);
     }
 
-    // if (current_burnchain_block_height && current_burnchain_block_height !== lastBurnHeight) {
-    //   console.log('Burn block:', current_burnchain_block_height);
-    //   if (current_burnchain_block_height === EPOCH_30_START) {
-    //     console.log('Starting Nakamoto!');
-    //   }
-    //   lastBurnHeight = current_burnchain_block_height;
-    //   if (info.currentSigners) {
-    //     console.log(
-    //       `Current cycle (${reward_cycle_id}) has ${info.currentSigners.stacker_set.signers.length} signers`
-    //     );
-    //   }
-    //   if (info.nextSigners) {
-    //     console.log(
-    //       `Next cycle (${info.nextCycleId}) has ${info.nextSigners.stacker_set.signers.length} signers`
-    //     );
-    //   }
-    // }
-    // if (stacks_tip_height !== lastStxHeight) {
-    //   console.log('Stacks block:', stacks_tip_height);
-    //   lastStxHeight = stacks_tip_height;
-    // }
     if (reward_cycle_id >= EPOCH_30_START && !info.currentSigners?.stacker_set.signers.length) {
       console.error('FATAL: no signers while going in to Epoch 3.0');
       exit();
@@ -177,7 +158,7 @@ function exit() {
 
 async function runLoop() {
   await loop();
-  setTimeout(runLoop, 1000);
+  setTimeout(runLoop, monitorInterval * 1000);
 }
 
 async function run() {
