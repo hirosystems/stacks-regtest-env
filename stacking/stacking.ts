@@ -1,4 +1,4 @@
-import { StackingClient } from '@stacks/stacking';
+import { StackingClient, PoxInfo } from '@stacks/stacking';
 import { StacksTestnet } from '@stacks/network';
 import { getAddressFromPrivateKey, TransactionVersion, createStacksPrivateKey } from '@stacks/transactions';
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
@@ -10,11 +10,11 @@ const stackingIntervalEnv = process.env.STACKING_INTERVAL;
 const stackingInterval = typeof stackingIntervalEnv === 'undefined' ? 2 : parseInt(stackingIntervalEnv, 10);
 const postTxWaitEnv = process.env.POST_TX_WAIT;
 const postTxWait = typeof postTxWaitEnv === 'undefined' ? 10 : parseInt(postTxWaitEnv, 10);
-const stackingCycles = process.env.STACKING_CYCLES ?? 1;
+const stackingCycles = parseInt(process.env.STACKING_CYCLES ?? '1');
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 const network = new StacksTestnet({ url });
 
-const accounts = process.env.STACKING_KEYS!.split(',').map(privKey => {
+const accounts = process.env.STACKING_KEYS!.split(',').map((privKey, index) => {
   const pubKey = getPublicKeyFromPrivate(privKey);
   const stxAddress = getAddressFromPrivateKey(privKey, TransactionVersion.Testnet);
   const signerPrivKey = createStacksPrivateKey(privKey);
@@ -24,6 +24,7 @@ const accounts = process.env.STACKING_KEYS!.split(',').map(privKey => {
     btcAddr: publicKeyToBtcAddress(pubKey),
     signerPrivKey: signerPrivKey,
     signerPubKey: signerPubKey,
+    targetSlots: (index + 1) * 2,
     client: new StackingClient(stxAddress, {
       ...network,
       transactionVersion: network.version,
@@ -96,13 +97,10 @@ async function run() {
   }
 }
 
-/**
- * @param {import('@stacks/stacking').PoxInfo} poxInfo
- * @param {typeof accounts[0]} account
- */
-async function stackStx(poxInfo, account) {
+async function stackStx(poxInfo: PoxInfo, account: typeof accounts[0]) {
   // Bump min threshold by 50% to avoid getting stuck if threshold increases
-  let minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
+  const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
+  const amountToStx = Math.round(minStx * account.targetSlots);
   const authId = randInt();
   const sigArgs = {
     topic: 'stack-stx',
@@ -112,12 +110,12 @@ async function stackStx(poxInfo, account) {
     signerPrivateKey: account.signerPrivKey,
     authId,
     maxAmount,
-  };
+  } as const;
   const signerSignature = account.client.signPoxSignature(sigArgs);
   const stackingArgs = {
     poxAddress: account.btcAddr,
     privateKey: account.privKey,
-    amountMicroStx: minStx,
+    amountMicroStx: amountToStx,
     burnBlockHeight: poxInfo.current_burnchain_block_height,
     cycles: stackingCycles,
     fee: 1000,
@@ -131,11 +129,7 @@ async function stackStx(poxInfo, account) {
   console.log('Stack-stx tx result', stackResult);
 }
 
-/**
- * @param {import('@stacks/stacking').PoxInfo} poxInfo
- * @param {typeof accounts[0]} account
- */
-async function stackExtend(poxInfo, account) {
+async function stackExtend(poxInfo: PoxInfo, account: typeof accounts[0]) {
   const authId = randInt();
   const sigArgs = {
     topic: 'stack-extend',
@@ -145,7 +139,7 @@ async function stackExtend(poxInfo, account) {
     signerPrivateKey: account.signerPrivKey,
     authId,
     maxAmount,
-  };
+  } as const;
   const signerSignature = account.client.signPoxSignature(sigArgs);
   const stackingArgs = {
     poxAddress: account.btcAddr,
