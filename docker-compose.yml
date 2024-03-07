@@ -166,8 +166,6 @@ services:
       STACKS_30_HEIGHT: *STACKS_30_HEIGHT
     depends_on:
       - stacks-node
-    depends_on:
-      - stacks-node
 
   tx-broadcaster:
     networks:

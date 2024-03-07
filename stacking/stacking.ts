@@ -1,4 +1,4 @@
-import { StackingClient, PoxInfo } from '@stacks/stacking';
+import { StackingClient, PoxInfo, Pox4SignatureTopic } from '@stacks/stacking';
 import { StacksTestnet } from '@stacks/network';
 import {
   getAddressFromPrivateKey,
@@ -7,42 +7,12 @@ import {
 } from '@stacks/transactions';
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
 import crypto from 'crypto';
+import { Account, accounts, network, maxAmount, parseEnvInt } from './common';
 
 const randInt = () => crypto.randomInt(0, 0xffffffffffff);
-
-const stackingIntervalEnv = process.env.STACKING_INTERVAL;
-const stackingInterval =
-  typeof stackingIntervalEnv === 'undefined' ? 2 : parseInt(stackingIntervalEnv, 10);
-const postTxWaitEnv = process.env.POST_TX_WAIT;
-const postTxWait = typeof postTxWaitEnv === 'undefined' ? 10 : parseInt(postTxWaitEnv, 10);
-const stackingCycles = parseInt(process.env.STACKING_CYCLES ?? '1');
-const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
-const network = new StacksTestnet({ url });
-
-const accounts = process.env.STACKING_KEYS!.split(',').map((privKey, index) => {
-  const pubKey = getPublicKeyFromPrivate(privKey);
-  const stxAddress = getAddressFromPrivateKey(privKey, TransactionVersion.Testnet);
-  const signerPrivKey = createStacksPrivateKey(privKey);
-  const signerPubKey = getPublicKeyFromPrivate(signerPrivKey.data);
-  return {
-    privKey,
-    pubKey,
-    stxAddress,
-    btcAddr: publicKeyToBtcAddress(pubKey),
-    signerPrivKey: signerPrivKey,
-    signerPubKey: signerPubKey,
-    targetSlots: (index + 1) * 2,
-    client: new StackingClient(stxAddress, {
-      ...network,
-      transactionVersion: network.version,
-      magicBytes: 'X2',
-      peerNetworkId: network.chainId,
-    }),
-  };
-});
-
-const MAX_U128 = 2n ** 128n - 1n;
-const maxAmount = MAX_U128;
+const stackingInterval = parseEnvInt('STACKING_INTERVAL') ?? 2;
+const postTxWait = parseEnvInt('POST_TX_WAIT') ?? 10;
+const stackingCycles = parseEnvInt('STACKING_CYCLES') ?? 1;
 
 async function waitForSetup() {
   try {

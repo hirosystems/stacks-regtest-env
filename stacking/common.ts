@@ -20,7 +20,7 @@ export const infoApi = new InfoApi(apiConfig);
 export const EPOCH_30_START = parseEnvInt('STACKS_30_HEIGHT', true);
 export const EPOCH_25_START = parseEnvInt('STACKS_25_HEIGHT', true);
 
-export const accounts = process.env.STACKING_KEYS!.split(',').map(privKey => {
+export const accounts = process.env.STACKING_KEYS!.split(',').map((privKey, index) => {
   const pubKey = getPublicKeyFromPrivate(privKey);
   const stxAddress = getAddressFromPrivateKey(privKey, TransactionVersion.Testnet);
   const signerPrivKey = createStacksPrivateKey(privKey);
@@ -32,6 +32,7 @@ export const accounts = process.env.STACKING_KEYS!.split(',').map(privKey => {
     btcAddr: publicKeyToBtcAddress(pubKey),
     signerPrivKey: signerPrivKey,
     signerPubKey: signerPubKey,
+    targetSlots: (index + 1) * 2,
     client: new StackingClient(stxAddress, network),
   };
 });
