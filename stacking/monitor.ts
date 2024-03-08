@@ -8,7 +8,9 @@ import {
   didCrossPreparePhase,
   blocksApi,
   parseEnvInt,
+  txApi,
 } from './common';
+import { Transaction, ContractCallTransaction } from '@stacks/stacks-blockchain-api-types';
 
 let lastBurnHeight = 0;
 let lastStxHeight = 0;
@@ -23,27 +25,31 @@ const monitorInterval = parseEnvInt('MONITOR_INTERVAL') ?? 2;
 
 console.log('Exit from monitor:', EXIT_FROM_MONITOR);
 
+async function getTransactions(): Promise<ContractCallTransaction[]> {
+  let res = await txApi.getTransactionsByBlock({
+    heightOrHash: 'latest',
+  });
+  let txs = res.results as Transaction[];
+  return txs.filter(tx => {
+    return tx.tx_type === 'contract_call';
+  }) as ContractCallTransaction[];
+}
+
 async function getInfo() {
   let { client } = accounts[0];
-  const [poxInfo, coreInfo, blockInfo] = await Promise.all([
+  const [poxInfo, blockInfo, txs] = await Promise.all([
     client.getPoxInfo(),
-    infoApi.getCoreApiInfo(),
     blocksApi.getBlock({
       heightOrHash: 'latest',
     }),
+    getTransactions(),
   ]);
   const { reward_cycle_id } = poxInfo;
-  const [currentSigners, nextSigners] = await Promise.all([
-    getSignerSet(reward_cycle_id),
-    getSignerSet(reward_cycle_id + 1),
-  ]);
   return {
     poxInfo,
-    coreInfo,
     blockInfo,
-    currentSigners,
-    nextSigners,
     nextCycleId: reward_cycle_id + 1,
+    txs,
   };
 }
 
@@ -71,9 +77,8 @@ async function getSignerSet(cycle: number) {
 
 async function loop() {
   try {
-    const { poxInfo, coreInfo, blockInfo, ...info } = await getInfo();
+    const { poxInfo, blockInfo, ...info } = await getInfo();
     let { reward_cycle_id, current_burnchain_block_height } = poxInfo;
-    // let { stacks_tip_height } = coreInfo;
     let { height } = blockInfo;
     let showBurnMsg = false;
     let showPrepareMsg = false;
@@ -111,9 +116,10 @@ async function loop() {
     }
     if (showPrepareMsg) {
       console.log(`Prepare phase started. Next cycle is ${reward_cycle_id + 1}`);
-      if (info.nextSigners) {
+      const nextSigners = await getSignerSet(reward_cycle_id + 1);
+      if (nextSigners) {
         console.log(
-          `Next cycle (${info.nextCycleId}) has ${info.nextSigners.stacker_set.signers.length} signers`
+          `Next cycle (${info.nextCycleId}) has ${nextSigners.stacker_set.signers.length} signers`
         );
       }
     }
@@ -125,13 +131,19 @@ async function loop() {
         )} seconds)`
       );
     }
+    if (showStxBlockMsg && info.txs.length > 0) {
+      info.txs.forEach(({ contract_call, sender_address, tx_status }) => {
+        console.log(`${sender_address}:\t${contract_call.function_name}\t${tx_status}`);
+      });
+    }
 
     if (showCycleMsg) {
-      const signerCount = info.currentSigners?.stacker_set.signers.length ?? 0;
+      const currentSigners = await getSignerSet(reward_cycle_id);
+      const signerCount = currentSigners?.stacker_set.signers.length ?? 0;
       console.log(`New cycle started (${reward_cycle_id}) with ${signerCount} signers`);
     }
 
-    if (reward_cycle_id >= EPOCH_30_START && !info.currentSigners?.stacker_set.signers.length) {
+    if (reward_cycle_id >= EPOCH_30_START && !poxInfo.reward_slots) {
       console.error('FATAL: no signers while going in to Epoch 3.0');
       exit();
     }

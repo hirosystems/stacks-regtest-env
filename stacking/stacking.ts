@@ -7,25 +7,12 @@ import {
 } from '@stacks/transactions';
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
 import crypto from 'crypto';
-import { Account, accounts, network, maxAmount, parseEnvInt } from './common';
+import { Account, accounts, network, maxAmount, parseEnvInt, waitForSetup } from './common';
 
 const randInt = () => crypto.randomInt(0, 0xffffffffffff);
 const stackingInterval = parseEnvInt('STACKING_INTERVAL') ?? 2;
 const postTxWait = parseEnvInt('POST_TX_WAIT') ?? 10;
 const stackingCycles = parseEnvInt('STACKING_CYCLES') ?? 1;
-
-async function waitForSetup() {
-  try {
-    await accounts[0].client.getPoxInfo();
-  } catch (error) {
-    if (/(ECONNREFUSED|ENOTFOUND)/.test(error.cause?.message)) {
-      console.log(`Stacks node not ready, waiting...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return waitForSetup();
-    }
-    throw error;
-  }
-}
 
 async function run() {
   await waitForSetup();

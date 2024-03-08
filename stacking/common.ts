@@ -8,7 +8,7 @@ import {
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
 import { StacksNodeApi } from '@stacks/api';
 import crypto from 'crypto';
-import { InfoApi, Configuration, BlocksApi } from '@stacks/blockchain-api-client';
+import { InfoApi, Configuration, BlocksApi, TransactionsApi } from '@stacks/blockchain-api-client';
 
 export const nodeUrl = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 export const network = new StacksTestnet({ url: nodeUrl });
@@ -17,6 +17,7 @@ const apiConfig = new Configuration({
 });
 export const infoApi = new InfoApi(apiConfig);
 export const blocksApi = new BlocksApi(apiConfig);
+export const txApi = new TransactionsApi(apiConfig);
 
 export const EPOCH_30_START = parseEnvInt('STACKS_30_HEIGHT', true);
 export const EPOCH_25_START = parseEnvInt('STACKS_25_HEIGHT', true);
@@ -49,7 +50,7 @@ export async function waitForSetup() {
   } catch (error) {
     if (/(ECONNREFUSED|ENOTFOUND)/.test(error.cause?.message)) {
       console.log(`Stacks node not ready, waiting...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       return waitForSetup();
     }
     throw error;

@@ -14,7 +14,8 @@
     "@stacks/stacking": "6.11.4-pr.36558cf.0",
     "@stacks/transactions": "6.11.4-pr.36558cf.0",
     "@stacks/common": "6.11.4-pr.36558cf.0",
-    "@stacks/blockchain-api-client": "7.8.2"
+    "@stacks/blockchain-api-client": "7.8.2",
+    "@stacks/stacks-blockchain-api-types": "7.8.2"
   },
   "devDependencies": {
     "@stacks/prettier-config": "^0.0.10",
