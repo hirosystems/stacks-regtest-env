@@ -56,7 +56,14 @@ async function run() {
   await Promise.all(
     accountInfos.map(async account => {
       if (account.lockedAmount === 0n) {
-        runLog.info(`Account ${account.index} is unlocked, stack-stx required`);
+        runLog.info(
+          {
+            burnHeight: poxInfo.current_burnchain_block_height,
+            unlockHeight: account.unlockHeight,
+            account: account.index,
+          },
+          `Account ${account.index} is unlocked, stack-stx required`
+        );
         await stackStx(poxInfo, account);
         txSubmitted = true;
         return;
@@ -65,6 +72,8 @@ async function run() {
         runLog.info(
           {
             burnHeight: poxInfo.current_burnchain_block_height,
+            unlockHeight: account.unlockHeight,
+            account: account.index,
           },
           `Account ${account.index} unlocks before next cycle ${account.unlockHeight} vs ${nextCycleStartHeight}, stack-extend required`
         );
@@ -75,10 +84,11 @@ async function run() {
       runLog.info(
         {
           burnHeight: poxInfo.current_burnchain_block_height,
+          unlockHeight: account.unlockHeight,
+          account: account.index,
         },
         `Account ${account.index} is locked for next cycle, skipping stacking`
       );
-      // console.log(`Account ${account.stxAddress} is locked for next cycle, skipping stacking`);
     })
   );
 
