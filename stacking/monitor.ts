@@ -9,6 +9,7 @@ import {
   blocksApi,
   parseEnvInt,
   txApi,
+  logger,
 } from './common';
 import { Transaction, ContractCallTransaction } from '@stacks/stacks-blockchain-api-types';
 
@@ -17,13 +18,14 @@ let lastStxHeight = 0;
 let lastRewardCycle = 0;
 let lastStxBlockTime = new Date().getTime();
 let lastStxBlockDiff = 0;
+let lastBlockWarnTime = 0;
 
-console.log('Monitoring...');
+logger.info('Starting monitor script...');
 
 const EXIT_FROM_MONITOR = process.env.EXIT_FROM_MONITOR === '1';
 const monitorInterval = parseEnvInt('MONITOR_INTERVAL') ?? 2;
 
-console.log('Exit from monitor:', EXIT_FROM_MONITOR);
+logger.debug('Exit from monitor?', EXIT_FROM_MONITOR);
 
 async function getTransactions(): Promise<ContractCallTransaction[]> {
   let res = await txApi.getTransactionsByBlock({
@@ -84,6 +86,17 @@ async function loop() {
     let showPrepareMsg = false;
     let showCycleMsg = false;
     let showStxBlockMsg = false;
+    let burnHeightDate = new Date(blockInfo.burn_block_time * 1000);
+    let burnHeightTimeAgo = (new Date().getTime() - burnHeightDate.getTime()) / 1000;
+    const loopLog = logger.child({
+      height,
+      burnHeight: current_burnchain_block_height,
+      // burnHeightTime:
+      cycle: reward_cycle_id,
+      txCount: blockInfo.tx_count,
+      rewardCycle: reward_cycle_id,
+      lastBurnBlock: `${burnHeightTimeAgo.toFixed(0)}s ago`,
+    });
 
     if (current_burnchain_block_height && current_burnchain_block_height !== lastBurnHeight) {
       if (didCrossPreparePhase(lastBurnHeight, current_burnchain_block_height)) {
@@ -98,53 +111,89 @@ async function loop() {
       lastRewardCycle = reward_cycle_id;
     }
 
+    const now = new Date().getTime();
+    lastStxBlockDiff = now - lastStxBlockTime;
+
     if (height !== lastStxHeight) {
       showStxBlockMsg = true;
       lastStxHeight = height;
-      const now = new Date().getTime();
-      lastStxBlockDiff = now - lastStxBlockTime;
       lastStxBlockTime = now;
+      lastBlockWarnTime = now;
+    }
+
+    // how many ms to warn about no stx blocks
+    const blockWarnInterval = 60 * 1000;
+    const lastWarnDiff = now - lastBlockWarnTime;
+    // if no stx block in a minute
+    if (lastStxBlockDiff > blockWarnInterval && lastWarnDiff > blockWarnInterval) {
+      // const diff = new Date().getTime() - lastStxBlockTime;
+      const lastSeen = new Date(lastStxBlockTime).toISOString();
+      const minSinceStxBlock = (lastStxBlockDiff / (1000 * 60)).toFixed(2);
+      lastBlockWarnTime = now;
+      logger.warn(
+        {
+          lastSeen,
+          secSinceStxBlock: lastStxBlockDiff / 1000,
+          minSinceStxBlock,
+        },
+        `No new stx block since ${minSinceStxBlock} minutes ago`
+      );
     }
 
     if (showBurnMsg) {
-      console.log(
-        `Burn block: ${current_burnchain_block_height}\tSTX block: ${height}\t${blockInfo.tx_count} TX`
-      );
+      loopLog.info('New burn block');
       if (current_burnchain_block_height === EPOCH_30_START) {
-        console.log('Starting Nakamoto!');
+        loopLog.info('Starting Nakamoto');
       }
     }
     if (showPrepareMsg) {
-      console.log(`Prepare phase started. Next cycle is ${reward_cycle_id + 1}`);
+      loopLog.info(
+        {
+          nextRewardCycle: reward_cycle_id + 1,
+        },
+        'Prepare phase started'
+      );
       const nextSigners = await getSignerSet(reward_cycle_id + 1);
       if (nextSigners) {
-        console.log(
-          `Next cycle (${info.nextCycleId}) has ${nextSigners.stacker_set.signers.length} signers`
+        loopLog.info(
+          {
+            nextSigners: nextSigners.stacker_set.signers.length,
+          },
+          `Next cycle (${reward_cycle_id + 1}) has ${
+            nextSigners.stacker_set.signers.length
+          } signers`
         );
       }
     }
 
-    if (!showBurnMsg && showStxBlockMsg) {
-      console.log(
-        `Nakamoto block: ${height}\t${blockInfo.tx_count} TX\t(${(lastStxBlockDiff / 1000).toFixed(
-          2
-        )} seconds)`
-      );
+    if (!showBurnMsg && showStxBlockMsg && blockInfo.burn_block_height >= EPOCH_30_START) {
+      loopLog.info({ lastStxBlockDiff: lastStxBlockDiff / 1000 }, 'Nakamoto block');
     }
     if (showStxBlockMsg && info.txs.length > 0) {
-      info.txs.forEach(({ contract_call, sender_address, tx_status }) => {
-        console.log(`${sender_address}:\t${contract_call.function_name}\t${tx_status}`);
+      info.txs.forEach(({ contract_call, sender_address, tx_status, ...tx }) => {
+        loopLog.info(
+          {
+            sender_address,
+            contract_call: contract_call.function_name,
+            tx_status,
+            tx_result: tx.tx_result.repr,
+          },
+          'New transaction confirmed'
+        );
       });
     }
 
     if (showCycleMsg) {
       const currentSigners = await getSignerSet(reward_cycle_id);
       const signerCount = currentSigners?.stacker_set.signers.length ?? 0;
-      console.log(`New cycle started (${reward_cycle_id}) with ${signerCount} signers`);
+      loopLog.info(
+        { signerCount },
+        `New cycle started (${reward_cycle_id}) with ${signerCount} signers`
+      );
     }
 
     if (reward_cycle_id >= EPOCH_30_START && !poxInfo.reward_slots) {
-      console.error('FATAL: no signers while going in to Epoch 3.0');
+      logger.error('FATAL: no signers while going in to Epoch 3.0');
       exit();
     }
   } catch (error) {
@@ -154,16 +203,13 @@ async function loop() {
     } else {
       console.error(error);
     }
-    console.error(message);
-    // if (!message.toLowerCase().includes('fetch failed')) {
-    //   throw error;
-    // }
+    logger.error(message);
   }
 }
 
 function exit() {
   if (EXIT_FROM_MONITOR) {
-    console.log('Exiting...');
+    logger.info('Exiting...');
     process.exit(1);
   }
 }

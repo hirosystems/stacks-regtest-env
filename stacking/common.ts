@@ -9,6 +9,27 @@ import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encrypti
 import { StacksNodeApi } from '@stacks/api';
 import crypto from 'crypto';
 import { InfoApi, Configuration, BlocksApi, TransactionsApi } from '@stacks/blockchain-api-client';
+import pino, { Logger } from 'pino';
+import pinoPretty from 'pino-pretty';
+
+const serviceName = process.env.SERVICE_NAME || 'JS';
+export let logger: Logger;
+if (process.env.STACKS_LOG_JSON === '1') {
+  logger = pino({
+    name: serviceName,
+  });
+} else {
+  logger = pino({
+    name: serviceName,
+    transport: {
+      target: 'pino-pretty',
+    },
+    // @ts-ignore
+    options: {
+      colorize: true,
+    },
+  });
+}
 
 export const nodeUrl = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 export const network = new StacksTestnet({ url: nodeUrl });
@@ -35,7 +56,12 @@ export const accounts = process.env.STACKING_KEYS!.split(',').map((privKey, inde
     signerPrivKey: signerPrivKey,
     signerPubKey: signerPubKey,
     targetSlots: (index + 1) * 2,
+    index,
     client: new StackingClient(stxAddress, network),
+    logger: logger.child({
+      account: stxAddress,
+      index: index,
+    }),
   };
 });
 
@@ -48,7 +74,7 @@ export async function waitForSetup() {
   try {
     await accounts[0].client.getPoxInfo();
   } catch (error) {
-    if (/(ECONNREFUSED|ENOTFOUND)/.test(error.cause?.message)) {
+    if (/(ECONNREFUSED|ENOTFOUND|SyntaxError)/.test(error.cause?.message)) {
       console.log(`Stacks node not ready, waiting...`);
       await new Promise(resolve => setTimeout(resolve, 3000));
       return waitForSetup();
