@@ -92,7 +92,7 @@ services:
 
           SLEEP_DURATION=$${MINE_INTERVAL}
           BLOCK_HEIGHT=$$(bitcoin-cli -rpcconnect=bitcoind getblockcount)
-          if [ "$${BLOCK_HEIGHT}" -gt $$(( $${STACKS_30_HEIGHT} + 5 )) ]; then
+          if [ "$${BLOCK_HEIGHT}" -gt $$(( $${STACKS_30_HEIGHT} + 1 )) ]; then
             echo "In Epoch3, sleeping for $${MINE_INTERVAL_EPOCH3} seconds..."
             SLEEP_DURATION=$${MINE_INTERVAL_EPOCH3}
           fi
