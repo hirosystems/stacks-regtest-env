@@ -7,7 +7,16 @@ import {
 } from '@stacks/transactions';
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
 import crypto from 'crypto';
-import { Account, accounts, network, maxAmount, parseEnvInt, waitForSetup, logger } from './common';
+import {
+  Account,
+  accounts,
+  network,
+  maxAmount,
+  parseEnvInt,
+  waitForSetup,
+  logger,
+  burnBlockToRewardCycle,
+} from './common';
 
 const randInt = () => crypto.randomInt(0, 0xffffffffffff);
 const stackingInterval = parseEnvInt('STACKING_INTERVAL') ?? 2;
@@ -27,7 +36,6 @@ async function run() {
     );
     return;
   }
-  const nextCycleStartHeight = poxInfo.next_cycle.prepare_phase_start_block_height;
 
   const runLog = logger.child({
     burnHeight: poxInfo.current_burnchain_block_height,
@@ -68,14 +76,18 @@ async function run() {
         txSubmitted = true;
         return;
       }
-      if (forceExtend || account.unlockHeight <= nextCycleStartHeight - 5) {
+      const unlockHeightCycle = burnBlockToRewardCycle(account.unlockHeight);
+      const nowCycle = burnBlockToRewardCycle(poxInfo.current_burnchain_block_height ?? 0);
+      if (forceExtend || unlockHeightCycle === nowCycle + 1) {
         runLog.info(
           {
             burnHeight: poxInfo.current_burnchain_block_height,
             unlockHeight: account.unlockHeight,
             account: account.index,
+            nowCycle,
+            unlockCycle: unlockHeightCycle,
           },
-          `Account ${account.index} unlocks before next cycle ${account.unlockHeight} vs ${nextCycleStartHeight}, stack-extend required`
+          `Account ${account.index} unlocks before next cycle ${account.unlockHeight} vs ${poxInfo.current_burnchain_block_height}, stack-extend required`
         );
         await stackExtend(poxInfo, account);
         txSubmitted = true;
@@ -86,6 +98,8 @@ async function run() {
           burnHeight: poxInfo.current_burnchain_block_height,
           unlockHeight: account.unlockHeight,
           account: account.index,
+          nowCycle,
+          unlockCycle: unlockHeightCycle,
         },
         `Account ${account.index} is locked for next cycle, skipping stacking`
       );
