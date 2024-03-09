@@ -96,6 +96,7 @@ async function loop() {
       txCount: blockInfo.tx_count,
       rewardCycle: reward_cycle_id,
       lastBurnBlock: `${burnHeightTimeAgo.toFixed(0)}s ago`,
+      burnHash: blockInfo.burn_block_hash,
     });
 
     if (current_burnchain_block_height && current_burnchain_block_height !== lastBurnHeight) {
@@ -130,7 +131,7 @@ async function loop() {
       const lastSeen = new Date(lastStxBlockTime).toISOString();
       const minSinceStxBlock = (lastStxBlockDiff / (1000 * 60)).toFixed(2);
       lastBlockWarnTime = now;
-      logger.warn(
+      loopLog.warn(
         {
           lastSeen,
           secSinceStxBlock: lastStxBlockDiff / 1000,
