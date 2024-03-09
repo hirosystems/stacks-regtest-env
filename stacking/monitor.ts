@@ -136,6 +136,7 @@ async function loop() {
           lastSeen,
           secSinceStxBlock: lastStxBlockDiff / 1000,
           minSinceStxBlock,
+          lastStxBlockTime,
         },
         `No new stx block since ${minSinceStxBlock} minutes ago`
       );
