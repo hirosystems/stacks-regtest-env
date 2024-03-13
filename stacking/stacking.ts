@@ -55,13 +55,11 @@ async function run() {
 
   let txSubmitted = false;
 
-  let forceExtend = false;
   // Bump min threshold by 50% to avoid getting stuck if threshold increases
   const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
   const nextCycleStx = poxInfo.next_cycle.stacked_ustx;
   if (nextCycleStx < minStx) {
-    runLog.info(`Next cycle has less than min threshold, force extending`);
-    forceExtend = true;
+    runLog.info(`Next cycle has less than min threshold.. stacking should be performed soon`);
   }
 
   await Promise.all(
@@ -81,7 +79,7 @@ async function run() {
       }
       const unlockHeightCycle = burnBlockToRewardCycle(account.unlockHeight);
       const nowCycle = burnBlockToRewardCycle(poxInfo.current_burnchain_block_height ?? 0);
-      if (forceExtend || unlockHeightCycle === nowCycle + 1) {
+      if (unlockHeightCycle === nowCycle + 1) {
         runLog.info(
           {
             burnHeight: poxInfo.current_burnchain_block_height,
