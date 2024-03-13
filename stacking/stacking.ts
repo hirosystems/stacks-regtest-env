@@ -19,9 +19,9 @@ import {
 } from './common';
 
 const randInt = () => crypto.randomInt(0, 0xffffffffffff);
-const stackingInterval = parseEnvInt('STACKING_INTERVAL') ?? 2;
-const postTxWait = parseEnvInt('POST_TX_WAIT') ?? 10;
-const stackingCycles = parseEnvInt('STACKING_CYCLES') ?? 1;
+const stackingInterval = parseEnvInt('STACKING_INTERVAL', true);
+const postTxWait = parseEnvInt('POST_TX_WAIT', true);
+const stackingCycles = parseEnvInt('STACKING_CYCLES', true);
 
 let startTxFee = 1000;
 const getNextTxFee = () => startTxFee++;

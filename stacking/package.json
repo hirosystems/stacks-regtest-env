@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "format": "prettier --write *.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

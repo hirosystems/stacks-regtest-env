@@ -85,16 +85,16 @@ export async function waitForSetup() {
   }
 }
 
-export function parseEnvInt(envKey: string, required: true): number;
-export function parseEnvInt(envKey: string): number | undefined;
-export function parseEnvInt(envKey: string, required: undefined): number | undefined;
-export function parseEnvInt(envKey: string, required?: boolean) {
+export function parseEnvInt<T extends boolean = false>(
+  envKey: string,
+  required?: T
+): T extends true ? number : number | undefined {
   let value = process.env[envKey];
   if (typeof value === 'undefined') {
     if (required) {
       throw new Error(`Missing required env var: ${envKey}`);
     }
-    return undefined;
+    return undefined as T extends true ? number : number | undefined;
   }
   return parseInt(value, 10);
 }
