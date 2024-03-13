@@ -44,6 +44,8 @@ export const txApi = new TransactionsApi(apiConfig);
 
 export const EPOCH_30_START = parseEnvInt('STACKS_30_HEIGHT', true);
 export const EPOCH_25_START = parseEnvInt('STACKS_25_HEIGHT', true);
+export const POX_PREPARE_LENGTH = parseEnvInt('POX_PREPARE_LENGTH', true);
+export const POX_REWARD_LENGTH = parseEnvInt('POX_REWARD_LENGTH', true);
 
 export const accounts = process.env.STACKING_KEYS!.split(',').map((privKey, index) => {
   const pubKey = getPublicKeyFromPrivate(privKey);
@@ -101,14 +103,14 @@ export function parseEnvInt<T extends boolean = false>(
 
 /** hard-coded numbers from Stacks.toml file */
 export function burnBlockToRewardCycle(burnBlock: number) {
-  const cycleLength = 20n;
+  const cycleLength = BigInt(POX_REWARD_LENGTH);
   return Number(BigInt(burnBlock) / cycleLength) + 1;
 }
 
 export const EPOCH_30_START_CYCLE = burnBlockToRewardCycle(EPOCH_30_START);
 
 export function isPreparePhase(burnBlock: number) {
-  return 20 - (burnBlock % 20) < 5;
+  return POX_REWARD_LENGTH - (burnBlock % POX_REWARD_LENGTH) < POX_PREPARE_LENGTH;
 }
 
 export function didCrossPreparePhase(lastBurnHeight: number, newBurnHeight: number) {

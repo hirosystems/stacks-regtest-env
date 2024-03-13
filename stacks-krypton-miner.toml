@@ -70,8 +70,8 @@ chain = "bitcoin"
 mode = "nakamoto-neon"
 poll_time_secs = 1
 magic_bytes = "T3"
-pox_prepare_length = 5
-pox_reward_length = 20
+pox_prepare_length = $POX_PREPARE_LENGTH
+pox_reward_length = $POX_REWARD_LENGTH
 burn_fee_cap = 20_000
 
 ### bitcoind-regtest connection info
