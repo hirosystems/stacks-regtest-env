@@ -23,6 +23,9 @@ const stackingInterval = parseEnvInt('STACKING_INTERVAL') ?? 2;
 const postTxWait = parseEnvInt('POST_TX_WAIT') ?? 10;
 const stackingCycles = parseEnvInt('STACKING_CYCLES') ?? 1;
 
+let startTxFee = 1000;
+const getNextTxFee = () => startTxFee++;
+
 async function run() {
   await waitForSetup();
   const poxInfo = await accounts[0].client.getPoxInfo();
@@ -132,7 +135,7 @@ async function stackStx(poxInfo: PoxInfo, account: Account) {
     amountMicroStx: amountToStx,
     burnBlockHeight: poxInfo.current_burnchain_block_height,
     cycles: stackingCycles,
-    fee: 1000,
+    fee: getNextTxFee(),
     signerKey: account.signerPubKey,
     signerSignature,
     authId,
@@ -170,7 +173,7 @@ async function stackExtend(poxInfo: PoxInfo, account: Account) {
     poxAddress: account.btcAddr,
     privateKey: account.privKey,
     extendCycles: stackingCycles,
-    fee: 1000,
+    fee: getNextTxFee(),
     signerKey: account.signerPubKey,
     signerSignature,
     authId,
