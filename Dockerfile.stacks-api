@@ -1,4 +1,4 @@
-FROM node:18-bookworm as builder
+FROM node:20-bookworm as builder
 
 ARG GIT_COMMIT
 RUN test -n "$GIT_COMMIT" || (echo "GIT_COMMIT not set" && false)
