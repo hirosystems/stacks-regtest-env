@@ -8,7 +8,8 @@ x-common-vars:
   - &BITCOIN_RPC_PORT 18443
   - &BITCOIN_RPC_USER btc
   - &BITCOIN_RPC_PASS btc
-  - &MINE_INTERVAL ${MINE_INTERVAL:-10s}
+  - &MINE_INTERVAL ${MINE_INTERVAL:-1s}
+  - &MINE_INTERVAL_EPOCH25 ${MINE_INTERVAL_EPOCH25:-10s} # 10 second bitcoin block times in epoch 2.5
   - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-600s} # 10 minute bitcoin block times in epoch 3
   - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-101}
   - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-102}
@@ -62,8 +63,10 @@ services:
       BTC_ADDR: *BTC_ADDR
       MINE_INTERVAL: *MINE_INTERVAL
       MINE_INTERVAL_EPOCH3: *MINE_INTERVAL_EPOCH3
+      MINE_INTERVAL_EPOCH25: *MINE_INTERVAL_EPOCH25
       INIT_BLOCKS: 101
       STACKS_30_HEIGHT: *STACKS_30_HEIGHT
+      STACKS_25_HEIGHT: *STACKS_25_HEIGHT
     entrypoint:
       - /bin/bash
       - -c
@@ -94,8 +97,11 @@ services:
           SLEEP_DURATION=$${MINE_INTERVAL}
           BLOCK_HEIGHT=$$(bitcoin-cli -rpcconnect=bitcoind getblockcount)
           if [ "$${BLOCK_HEIGHT}" -gt $$(( $${STACKS_30_HEIGHT} + 1 )) ]; then
-            echo "In Epoch3, sleeping for $${MINE_INTERVAL_EPOCH3} seconds..."
+            echo "In Epoch3, sleeping for $${MINE_INTERVAL_EPOCH3} ..."
             SLEEP_DURATION=$${MINE_INTERVAL_EPOCH3}
+          elif [ "$${BLOCK_HEIGHT}" -gt $$(( $${STACKS_25_HEIGHT} + 1 )) ]; then
+            echo "In Epoch2.5, sleeping for $${MINE_INTERVAL_EPOCH25} ..."
+            SLEEP_DURATION=$${MINE_INTERVAL_EPOCH25}
           fi
           sleep $${SLEEP_DURATION} &
           wait || exit 0
