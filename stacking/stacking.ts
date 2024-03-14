@@ -49,7 +49,8 @@ async function run() {
       const info = await a.client.getAccountStatus();
       const unlockHeight = Number(info.unlock_height);
       const lockedAmount = BigInt(info.locked);
-      return { ...a, info, unlockHeight, lockedAmount };
+      const balance = BigInt(info.balance);
+      return { ...a, info, unlockHeight, lockedAmount, balance };
     })
   );
 
@@ -73,7 +74,7 @@ async function run() {
           },
           `Account ${account.index} is unlocked, stack-stx required`
         );
-        await stackStx(poxInfo, account);
+        await stackStx(poxInfo, account, account.balance);
         txSubmitted = true;
         return;
       }
@@ -112,10 +113,13 @@ async function run() {
   }
 }
 
-async function stackStx(poxInfo: PoxInfo, account: Account) {
+async function stackStx(poxInfo: PoxInfo, account: Account, balance: bigint) {
   // Bump min threshold by 50% to avoid getting stuck if threshold increases
   const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
   const amountToStx = BigInt(minStx) * BigInt(account.targetSlots);
+  if (amountToStx > balance) {
+    throw new Error(`Insufficient balance to stack-stx (amount=${amountToStx}, balance=${balance})`)
+  }
   const authId = randInt();
   const sigArgs = {
     topic: Pox4SignatureTopic.StackStx,
