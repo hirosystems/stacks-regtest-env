@@ -98,7 +98,6 @@ export function parseEnvInt<T extends boolean = false>(
   return parseInt(value, 10);
 }
 
-/** hard-coded numbers from Stacks.toml file */
 export function burnBlockToRewardCycle(burnBlock: number) {
   const cycleLength = BigInt(POX_REWARD_LENGTH);
   return Number(BigInt(burnBlock) / cycleLength) + 1;

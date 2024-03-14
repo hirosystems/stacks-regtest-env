@@ -1,4 +1,5 @@
 import { StacksTestnet } from '@stacks/network';
+import { StackingClient } from '@stacks/stacking';
 import {
   TransactionVersion,
   getAddressFromPrivateKey,
@@ -7,7 +8,7 @@ import {
   broadcastTransaction,
 } from '@stacks/transactions';
 
-const broadcastInterval = parseInt(process.env.BROADCAST_INTERVAL ?? '2');
+const broadcastInterval = parseInt(process.env.NAKAMOTO_BLOCK_INTERVAL ?? '2');
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 const network = new StacksTestnet({ url });
 
@@ -15,6 +16,8 @@ const accounts = process.env.ACCOUNT_KEYS!.split(',').map(privKey => ({
   privKey,
   stxAddress: getAddressFromPrivateKey(privKey, TransactionVersion.Testnet),
 }));
+
+const client = new StackingClient(accounts[0].stxAddress, network);
 
 async function run() {
   const accountNonces = await Promise.all(
@@ -51,7 +54,29 @@ async function run() {
   }
 }
 
+async function waitForNakamoto() {
+  while (true) {
+    try {
+      const poxInfo = await client.getPoxInfo();
+      if (!poxInfo.contract_id.endsWith('.pox-4')) {
+        console.log(`Pox contract is not .pox-4, waiting for pox-4 (contract=${poxInfo.contract_id}) ...`);
+      } else {
+        console.log(`Pox contract is .pox-4, ready to submit txs for Nakamoto block production`);
+        break;
+      }
+    } catch (error) {
+      if (/(ECONNREFUSED|ENOTFOUND|SyntaxError)/.test(error.cause?.message)) {
+        console.log(`Stacks node not ready, waiting...`);
+      } else {
+        console.error('Error getting pox info:', error);
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+}
+
 async function loop() {
+  await waitForNakamoto();
   while (true) {
     try {
       await run();

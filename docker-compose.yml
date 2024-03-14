@@ -12,6 +12,7 @@ x-common-vars:
   - &MINE_INTERVAL ${MINE_INTERVAL:-1s}
   - &MINE_INTERVAL_EPOCH25 ${MINE_INTERVAL_EPOCH25:-10s} # 10 second bitcoin block times in epoch 2.5
   - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-600s} # 10 minute bitcoin block times in epoch 3
+  - &NAKAMOTO_BLOCK_INTERVAL 2 # seconds to wait between issuing stx-transfer transactions (which triggers Nakamoto block production)
   - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-101}
   - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-102}
   - &STACKS_21_HEIGHT ${STACKS_21_HEIGHT:-103}
@@ -179,8 +180,8 @@ services:
       STACKS_30_HEIGHT: *STACKS_30_HEIGHT
       POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
       POX_REWARD_LENGTH: *POX_REWARD_LENGTH
-      STACKING_INTERVAL: 2
-      POST_TX_WAIT: 10
+      STACKING_INTERVAL: 2 # interval (seconds) for checking if stacking transactions are needed
+      POST_TX_WAIT: 10 # seconds to wait after a stacking transaction broadcast before continuing the loop
       SERVICE_NAME: stacker
     depends_on:
       - stacks-node
@@ -220,7 +221,7 @@ services:
     environment:
       STACKS_CORE_RPC_HOST: stacks-node
       STACKS_CORE_RPC_PORT: 20443
-      BROADCAST_INTERVAL: 2 # seconds
+      NAKAMOTO_BLOCK_INTERVAL: *NAKAMOTO_BLOCK_INTERVAL
       ACCOUNT_KEYS: 0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01,975b251dd7809469ef0c26ec3917971b75c51cd73a022024df4bf3b232cc2dc001,c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01
     depends_on:
       - stacks-node
