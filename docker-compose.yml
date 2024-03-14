@@ -1,7 +1,8 @@
 version: "3.9"
 
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT 49eb61a705e7f64be204ecdf15fcca3bd623dabc
+  - &STACKS_BLOCKCHAIN_COMMIT 081cd9a9fb41009964af005152ce2c47176bf8be
+  - &STACKS_API_COMMIT 3296e4241f7bf9de61c0b8237383217f25d34fb2
   - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
@@ -252,7 +253,7 @@ services:
       context: .
       dockerfile: Dockerfile.stacks-api
       args:
-        GIT_COMMIT: a5487312613a3179599fb7c128af9cfadc92d9a3
+        GIT_COMMIT: *STACKS_API_COMMIT
     depends_on:
       - postgres
     ports:
