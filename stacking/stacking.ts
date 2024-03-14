@@ -19,7 +19,6 @@ let startTxFee = 1000;
 const getNextTxFee = () => startTxFee++;
 
 async function run() {
-  await waitForSetup();
   const poxInfo = await accounts[0].client.getPoxInfo();
   if (!poxInfo.contract_id.endsWith('.pox-4')) {
     // console.log(`Pox contract is not .pox-4, skipping stacking (contract=${poxInfo.contract_id})`);
@@ -196,11 +195,14 @@ async function stackExtend(poxInfo: PoxInfo, account: Account) {
 }
 
 async function loop() {
-  try {
-    await run();
-  } catch (e) {
-    console.error('Error running stacking:', e);
+  await waitForSetup();
+  while (true) {
+    try {
+      await run();
+    } catch (e) {
+      console.error('Error running stacking:', e);
+    }
+    await new Promise(resolve => setTimeout(resolve, stackingInterval * 1000));
   }
-  setTimeout(loop, stackingInterval * 1000);
 }
 loop();
