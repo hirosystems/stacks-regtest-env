@@ -215,13 +215,20 @@ services:
       - stacks
     build:
       context: .
-      dockerfile: Dockerfile.tx-broadcaster
+      dockerfile: Dockerfile.stacker
     environment:
       STACKS_CORE_RPC_HOST: stacks-node
       STACKS_CORE_RPC_PORT: 20443
+      BROADCAST_INTERVAL: 2 # seconds
       ACCOUNT_KEYS: 0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01,975b251dd7809469ef0c26ec3917971b75c51cd73a022024df4bf3b232cc2dc001,c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01
     depends_on:
       - stacks-node
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        exec npx tsx /root/tx-broadcaster.ts
 
   postgres:
     networks:
