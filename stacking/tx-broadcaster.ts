@@ -11,6 +11,7 @@ import {
 const broadcastInterval = parseInt(process.env.NAKAMOTO_BLOCK_INTERVAL ?? '2');
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 const network = new StacksTestnet({ url });
+const EPOCH_30_START = parseInt(process.env.STACKS_30_HEIGHT ?? '0');
 
 const accounts = process.env.ACCOUNT_KEYS!.split(',').map(privKey => ({
   privKey,
@@ -58,10 +59,10 @@ async function waitForNakamoto() {
   while (true) {
     try {
       const poxInfo = await client.getPoxInfo();
-      if (!poxInfo.contract_id.endsWith('.pox-4')) {
-        console.log(`Pox contract is not .pox-4, waiting for pox-4 (contract=${poxInfo.contract_id}) ...`);
+      if (poxInfo.current_burnchain_block_height! <= EPOCH_30_START) {
+        console.log(`Nakamoto not activated yet, waiting... (current=${poxInfo.current_burnchain_block_height}), (epoch3=${EPOCH_30_START})`);
       } else {
-        console.log(`Pox contract is .pox-4, ready to submit txs for Nakamoto block production`);
+        console.log(`Nakamoto activation height reached, ready to submit txs for Nakamoto block production`);
         break;
       }
     } catch (error) {
