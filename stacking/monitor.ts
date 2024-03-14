@@ -1,7 +1,5 @@
 import {
   accounts,
-  network,
-  infoApi,
   nodeUrl,
   waitForSetup,
   EPOCH_30_START,
@@ -179,6 +177,7 @@ async function loop() {
             contract_call: contract_call.function_name,
             tx_status,
             tx_result: tx.tx_result.repr,
+            tx_id: tx.tx_id,
           },
           'New transaction confirmed'
         );

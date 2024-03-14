@@ -1,16 +1,8 @@
-import { StackingClient, PoxInfo, Pox4SignatureTopic } from '@stacks/stacking';
-import { StacksTestnet } from '@stacks/network';
-import {
-  getAddressFromPrivateKey,
-  TransactionVersion,
-  createStacksPrivateKey,
-} from '@stacks/transactions';
-import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
+import { PoxInfo, Pox4SignatureTopic } from '@stacks/stacking';
 import crypto from 'crypto';
 import {
   Account,
   accounts,
-  network,
   maxAmount,
   parseEnvInt,
   waitForSetup,
@@ -118,7 +110,9 @@ async function stackStx(poxInfo: PoxInfo, account: Account, balance: bigint) {
   const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
   const amountToStx = BigInt(minStx) * BigInt(account.targetSlots);
   if (amountToStx > balance) {
-    throw new Error(`Insufficient balance to stack-stx (amount=${amountToStx}, balance=${balance})`)
+    throw new Error(
+      `Insufficient balance to stack-stx (amount=${amountToStx}, balance=${balance})`
+    );
   }
   const authId = randInt();
   const sigArgs = {

@@ -6,11 +6,8 @@ import {
   createStacksPrivateKey,
 } from '@stacks/transactions';
 import { getPublicKeyFromPrivate, publicKeyToBtcAddress } from '@stacks/encryption';
-import { StacksNodeApi } from '@stacks/api';
-import crypto from 'crypto';
 import { InfoApi, Configuration, BlocksApi, TransactionsApi } from '@stacks/blockchain-api-client';
 import pino, { Logger } from 'pino';
-import pinoPretty from 'pino-pretty';
 
 const serviceName = process.env.SERVICE_NAME || 'JS';
 export let logger: Logger;
