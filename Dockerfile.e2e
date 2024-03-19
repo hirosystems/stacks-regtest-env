@@ -151,7 +151,7 @@ cat > /root/stack.js <<'EOM'
     burnBlockHeight: parseInt(process.argv[3]),
     poxAddress: 'mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP',
     cycles: 12,
-    privateKey: '08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01',
+    privateKey: '6a1a754ba863d7bab14adbbc3f8ebb090af9e871ace621d3e5ab634e1422885e01',
     fee: 1000,
     nonce: 0,
   })

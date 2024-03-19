@@ -134,29 +134,55 @@ amount = 10000000000000000
 [[ustx_balance]]
 address = "ST1HB1T8WRNBYB0Y3T7WXZS38NKKPTBR3EG9EPJKR"
 amount = 10000000000000000
+# Account keys 3
 # secretKey = "c71700b07d520a8c9731e4d0f095aa6efb91e16e25fb27ce2b72e7b698f8127a01"
 
 [[ustx_balance]]
 address = "ST2PGGD0ZXAWEMY4EZ025RD1X47EEVH287SQKA8BC"
 amount = 10000000000000000
+# Account keys 2
 # secretKey = "975b251dd7809469ef0c26ec3917971b75c51cd73a022024df4bf3b232cc2dc001"
 
 [[ustx_balance]]
 address = "ST29V10QEA7BRZBTWRFC4M70NJ4J6RJB5P1C6EE84"
 amount = 10000000000000000
+# Account keys 1
 # secretKey = "0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01"
 
+# Stacker/signer
 [[ustx_balance]]
-address = "STRYYQQ9M8KAF4NS7WNZQYY59X93XEKR31JP64CP"
-amount = 100000000000000000
-# secretKey = "e75dcb66f84287eaf347955e94fa04337298dbd95aa0dbb985771104ef1913db01"
+address = "ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0"
+amount = 10000000000000000
+# secret_key: 7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01
+# mnemonic = "area desk dutch sign gold cricket dawn toward giggle vibrant indoor bench warfare wagon number tiny universe sand talk dilemma pottery bone trap buddy"
+# stx_address: ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0
+# btc_address: mzxXgV6e4BZSsz8zVHm3TmqbECt7mbuErt
+
+# Stacker/signer
+[[ustx_balance]]
+address = "ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ"
+amount = 10000000000000000
+# secret_key: b463f0df6c05d2f156393eee73f8016c5372caa0e9e29a901bb7171d90dc4f1401
+# mnemonic = "prevent gallery kind limb income control noise together echo rival record wedding sense uncover school version force bleak nuclear include danger skirt enact arrow"
+# stx_address: ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ
+# btc_address: n37mwmru2oaVosgfuvzBwgV2ysCQRrLko7
+
+# Stacker/signer
+[[ustx_balance]]
+address = "ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP"
+amount = 10000000000000000
+# secret_key: 6a1a754ba863d7bab14adbbc3f8ebb090af9e871ace621d3e5ab634e1422885e01
+# mnemonic = "female adjust gallery certain visit token during great side clown fitness like hurt clip knife warm bench start reunion globe detail dream depend fortune"
+# stx_address: ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP
+# btc_address: n2v875jbJ4RjBnTjgbfikDfnwsDV5iUByw
 
 [[ustx_balance]]
-address = "STF9B75ADQAVXQHNEQ6KGHXTG7JP305J2GRWF3A2"
-amount = 100000000000000000
-# secretKey = "ce109fee08860bb16337c76647dcbc02df0c06b455dd69bcf30af74d4eedd19301",
+address = "ST5B3TD6YF085JWKSSW9HDWCDZTR842RFNP19HQC"
+amount = 10000000000000000
+# used in "flood.ts"
+# secretKey = 66b7a77a3e0abc2cddaa51ed38fc4553498e19d3620ef08eb141afcfd0e3f5b501
 
 [[ustx_balance]]
-address = "ST18MDW2PDTBSCR1ACXYRJP2JX70FWNM6YY2VX4SS"
-amount = 100000000000000000
-# secretKey = "08c14a1eada0dd42b667b40f59f7c8dedb12113613448dc04980aea20b268ddb01",
+address = "STEH2J3C05BAHYS0RBAQBANJ1AXR6SR43VMZ0D49"
+amount = 10000000000000000
+# secretKey = 5b8303150239eceaba43892af7cdd1fa7fc26eda5182ebaaa568e3341d54a4d001
