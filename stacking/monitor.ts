@@ -171,6 +171,9 @@ async function loop() {
     }
     if (showStxBlockMsg && info.txs.length > 0) {
       info.txs.forEach(({ contract_call, sender_address, tx_status, ...tx }) => {
+        if (contract_call.contract_id.includes('flood')) {
+          return;
+        }
         loopLog.info(
           {
             sender_address,
