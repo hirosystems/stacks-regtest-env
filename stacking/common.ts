@@ -65,7 +65,7 @@ export const accounts = process.env.STACKING_KEYS!.split(',').map((privKey, inde
     btcAddr: publicKeyToBtcAddress(pubKey),
     signerPrivKey: signerPrivKey,
     signerPubKey: signerPubKey,
-    targetSlots: (index + 1) * 2,
+    targetSlots: index + 1,
     index,
     client: new StackingClient(stxAddress, network),
     logger: logger.child({
