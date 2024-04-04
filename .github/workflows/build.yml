@@ -73,8 +73,8 @@ jobs:
         run: |
           cargo build --package stacks-node --bin stacks-node --features portable --profile release-lite --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
           mkdir -p ../bin/x86_64-unknown-linux-gnu ../bin/aarch64-unknown-linux-gnu
-          cp target/x86_64-unknown-linux-gnu/release/stacks-node ../bin/x86_64-unknown-linux-gnu
-          cp target/aarch64-unknown-linux-gnu/release/stacks-node ../bin/aarch64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release-lite/stacks-node ../bin/x86_64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release-lite/stacks-node ../bin/aarch64-unknown-linux-gnu
       - uses: actions/upload-artifact@v3
         with:
           name: stacks-node-bin

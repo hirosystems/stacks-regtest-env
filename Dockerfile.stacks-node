@@ -20,7 +20,7 @@ RUN cargo build --package stacks-node --bin stacks-node --features portable --pr
 
 FROM debian:bullseye-backports
 
-COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
+COPY --from=builder /stacks/target/release-lite/stacks-node /usr/local/bin/
 
 COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
 
