@@ -35,6 +35,8 @@ chain = "bitcoin"
 mode = "neon"
 poll_time_secs = 1
 pox_2_activation = $STACKS_POX2_HEIGHT
+pox_reward_length = $POX_REWARD_LENGTH
+pox_prepare_length = $POX_PREPARE_LENGTH
 
 ### bitcoind-regtest connection info
 peer_host = "$BITCOIN_PEER_HOST"
