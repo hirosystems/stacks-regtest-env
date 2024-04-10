@@ -72,7 +72,7 @@ jobs:
           AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
         run: |
           rm ".cargo/config"
-          cargo build --package stacks-node --bin stacks-node --features portable --profile release-lite --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
+          cargo build --package stacks-node --bin stacks-node --profile release-lite --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
           mkdir -p ../bin/x86_64-unknown-linux-gnu ../bin/aarch64-unknown-linux-gnu
           cp target/x86_64-unknown-linux-gnu/release-lite/stacks-node ../bin/x86_64-unknown-linux-gnu
           cp target/aarch64-unknown-linux-gnu/release-lite/stacks-node ../bin/aarch64-unknown-linux-gnu
