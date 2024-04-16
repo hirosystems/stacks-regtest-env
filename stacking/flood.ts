@@ -12,6 +12,8 @@ import {
   makeContractCall,
   tupleCV,
   uintCV,
+  AnchorMode,
+  PostConditionMode,
 } from '@stacks/transactions';
 import { readFileSync } from 'fs';
 import { config } from 'dotenv';
@@ -61,23 +63,29 @@ async function bootstrapFlooders() {
   // sync iterate
   let i = 0n;
   let allWorked = true;
-  for (const flooder of flooders) {
-    const tx = await makeSTXTokenTransfer({
-      recipient: flooder.stxAddress,
-      amount: 1000000 * 10_000, // 10k STX
-      senderKey: bootstrapper.privKey,
-      network,
-      nonce: nonce + i,
-      fee: 300,
-      anchorMode: 'any',
-    });
-    i++;
-    const ok = await broadcast(tx, bootstrapper.stxAddress);
-    if (!ok) {
-      allWorked = false;
-      break;
-    }
-  }
+  const amount = 1000000 * 10_000; // 10k STX
+  const transfersClarity = flooders.map(flooder => {
+    return `(try! (stx-transfer? u${amount} tx-sender '${flooder.stxAddress}))`;
+  });
+  const contractBody = `
+  (begin
+    ${transfersClarity.join('\n')}
+    (ok true)
+  )
+  `;
+  const bootstrapTx = await makeContractDeploy({
+    contractName: `bootstrap-${new Date().getTime().toString().slice(-4)}`,
+    postConditionMode: PostConditionMode.Allow,
+    fee: 3000000,
+    network,
+    nonce: nonce + i,
+    senderKey: bootstrapper.privKey,
+    anchorMode: AnchorMode.Any,
+    codeBody: contractBody,
+  });
+  await broadcast(bootstrapTx, bootstrapper.stxAddress);
+  i++;
+  // console.log(contractBody);
   if (!(await isContractDeployed(floodContractDeployer))) {
     const ok = await broadcast(
       await makeContractDeploy({
@@ -85,9 +93,10 @@ async function bootstrapFlooders() {
         nonce: nonce + i,
         contractName: 'flood',
         codeBody: floodContract,
-        fee: 3000,
+        fee: 3000000,
         anchorMode: 'any',
         network,
+        postConditionMode: PostConditionMode.Allow,
       }),
       bootstrapper.stxAddress
     );
