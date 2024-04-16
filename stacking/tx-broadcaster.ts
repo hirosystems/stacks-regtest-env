@@ -6,7 +6,9 @@ import {
   getNonce,
   makeSTXTokenTransfer,
   broadcastTransaction,
+  StacksTransaction,
 } from '@stacks/transactions';
+import { logger } from './common';
 
 const broadcastInterval = parseInt(process.env.NAKAMOTO_BLOCK_INTERVAL ?? '2');
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
@@ -33,7 +35,7 @@ async function run() {
   const sender = accountNonces[0];
   const recipient = accountNonces[1];
 
-  console.log(
+  logger.info(
     `Sending stx-transfer from ${sender.stxAddress} (nonce=${sender.nonce}) to ${recipient.stxAddress}`
   );
 
@@ -46,12 +48,20 @@ async function run() {
     fee: 300,
     anchorMode: 'any',
   });
+  await broadcast(tx, sender.stxAddress);
+}
 
+async function broadcast(tx: StacksTransaction, sender?: string) {
+  const txType = tx.payload.payloadType;
+  const label = sender ? accountLabel(sender) : 'Unknown';
   const broadcastResult = await broadcastTransaction(tx, network);
   if (broadcastResult.error) {
-    console.error('Error broadcasting stx-transfer', broadcastResult);
+    logger.error({ ...broadcastResult, account: label }, `Error broadcasting ${txType}`);
+    return false;
   } else {
-    console.log(`Broadcast stx-transfer tx=${broadcastResult.txid}`);
+    if (label.includes('Flooder')) return true;
+    logger.debug(`Broadcast ${txType} from ${label} tx=${broadcastResult.txid}`);
+    return true;
   }
 }
 
@@ -60,20 +70,32 @@ async function waitForNakamoto() {
     try {
       const poxInfo = await client.getPoxInfo();
       if (poxInfo.current_burnchain_block_height! <= EPOCH_30_START) {
-        console.log(`Nakamoto not activated yet, waiting... (current=${poxInfo.current_burnchain_block_height}), (epoch3=${EPOCH_30_START})`);
+        logger.info(
+          `Nakamoto not activated yet, waiting... (current=${poxInfo.current_burnchain_block_height}), (epoch3=${EPOCH_30_START})`
+        );
       } else {
-        console.log(`Nakamoto activation height reached, ready to submit txs for Nakamoto block production`);
+        logger.info(
+          `Nakamoto activation height reached, ready to submit txs for Nakamoto block production`
+        );
         break;
       }
     } catch (error) {
       if (/(ECONNREFUSED|ENOTFOUND|SyntaxError)/.test(error.cause?.message)) {
-        console.log(`Stacks node not ready, waiting...`);
+        logger.info(`Stacks node not ready, waiting...`);
       } else {
-        console.error('Error getting pox info:', error);
+        logger.error('Error getting pox info:', error);
       }
     }
     await new Promise(resolve => setTimeout(resolve, 3000));
   }
+}
+
+function accountLabel(address: string) {
+  const accountIndex = accounts.findIndex(account => account.stxAddress === address);
+  if (accountIndex !== -1) {
+    return `Account #${accountIndex}`;
+  }
+  return `Unknown (${address})`;
 }
 
 async function loop() {
@@ -82,7 +104,7 @@ async function loop() {
     try {
       await run();
     } catch (e) {
-      console.error('Error submitting stx-transfer tx:', e);
+      logger.error('Error submitting stx-transfer tx:', e);
     }
     await new Promise(resolve => setTimeout(resolve, broadcastInterval * 1000));
   }
