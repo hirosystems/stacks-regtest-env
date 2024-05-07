@@ -3,7 +3,7 @@
 FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=d54b67c96cfbf5c9542d0e659c915080c6976e4a
+ARG GIT_COMMIT=e14022aa7e2eb82714c2ccaa3b8f2ed0f5568f8e
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -67,7 +67,7 @@ ENV DATA_DIR=/chainstate/stacks-blockchain-data
 ENV BTC_ADDR=miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
 ENV BTC_ADDR_WIF=cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
 ENV MINER_SEED=9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
-ENV BITCOIN_PEER_HOST=localhost
+ENV BITCOIN_PEER_HOST=127.0.0.1
 ENV BITCOIN_PEER_PORT=18444
 ENV BITCOIN_RPC_PORT=18443
 ENV BITCOIN_RPC_USER=btc
@@ -75,6 +75,12 @@ ENV BITCOIN_RPC_PASS=btc
 
 ARG MINE_INTERVAL=5s
 ENV MINE_INTERVAL=$MINE_INTERVAL
+
+ARG POX_REWARD_LENGTH=10
+ENV POX_REWARD_LENGTH=$POX_REWARD_LENGTH
+
+ARG POX_PREPARE_LENGTH=5
+ENV POX_PREPARE_LENGTH=$POX_PREPARE_LENGTH
 
 ARG STACKS_20_HEIGHT=0
 ENV STACKS_20_HEIGHT=$STACKS_20_HEIGHT
@@ -101,7 +107,7 @@ ARG STACKS_25_HEIGHT=112
 ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
 
 # do not boot into epoch3.0 for now (it doesn't work yet)
-ARG STACKS_30_HEIGHT=9999997
+ARG STACKS_30_HEIGHT=9999995
 ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
@@ -159,7 +165,7 @@ RUN <<EOF
   STACKS_PID=$!
 
   while true; do
-    HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+    HEIGHT=$(curl -s 127.0.0.1:20443/v2/info | jq '.burn_block_height')
     if [ "$HEIGHT" = "101" ]; then
       echo "Stacks node caught up to Bitcoin block $HEIGHT"
       break
@@ -177,7 +183,7 @@ RUN <<EOF
       echo "Current Bitcoin chain height: $chain_height"
     
       while true; do
-        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+        HEIGHT=$(curl -s 127.0.0.1:20443/v2/info | jq '.burn_block_height')
         if [ "$HEIGHT" = "$chain_height" ]; then
           echo "Stacks node caught up to Bitcoin block $HEIGHT"
           break
