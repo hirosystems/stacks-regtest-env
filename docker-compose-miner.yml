@@ -1,7 +1,7 @@
 version: "3.9"
 
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT master
+  - &STACKS_BLOCKCHAIN_COMMIT e14022aa7e2eb82714c2ccaa3b8f2ed0f5568f8e
   - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
@@ -16,6 +16,8 @@ x-common-vars:
   - &STACKS_22_HEIGHT ${STACKS_22_HEIGHT:-105}
   - &STACKS_23_HEIGHT ${STACKS_23_HEIGHT:-106}
   - &STACKS_24_HEIGHT ${STACKS_24_HEIGHT:-107}
+  - &STACKS_25_HEIGHT ${STACKS_25_HEIGHT:-108}
+  - &STACKS_30_HEIGHT ${STACKS_30_HEIGHT:-999999} # do not boot into epoch3.0 for now (it doesn't work yet)
   - &REWARD_RECIPIENT ${REWARD_RECIPIENT:-STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN} # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 
 services:
@@ -116,6 +118,8 @@ services:
       STACKS_22_HEIGHT: *STACKS_22_HEIGHT
       STACKS_23_HEIGHT: *STACKS_23_HEIGHT
       STACKS_24_HEIGHT: *STACKS_24_HEIGHT
+      STACKS_25_HEIGHT: *STACKS_25_HEIGHT
+      STACKS_30_HEIGHT: *STACKS_30_HEIGHT
       REWARD_RECIPIENT: *REWARD_RECIPIENT
     entrypoint:
       - /bin/bash
@@ -129,7 +133,7 @@ services:
         rm -rf $${DATA_DIR}/*
         envsubst < config.toml.in > config.toml
         # bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
-        exec stacks-node start --config=config.toml
+        exec stacks-node start --config config.toml
 
   ##################################
   ##### UNCOMMENT IF USING API #####

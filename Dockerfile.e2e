@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:bullseye as builder
+FROM rust:bookworm as builder
 
 # A commit hash, tag, or branch
-ARG GIT_COMMIT=feat/epoch-2.4
+ARG GIT_COMMIT=e14022aa7e2eb82714c2ccaa3b8f2ed0f5568f8e
 ARG BLOCKCHAIN_REPO=https://github.com/stacks-network/stacks-blockchain.git
 
 ARG TARGETPLATFORM
@@ -19,11 +19,11 @@ RUN <<EOF
   STACKS_NODE_BIN_AMD64=/stacks-blockchain-binaries/x86_64-unknown-linux-gnu/stacks-node
   if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ -f "$STACKS_NODE_BIN_ARM64" ]; then
     echo "Using existing stacks-node binary: $STACKS_NODE_BIN_ARM64"
-    mkdir -p target/release && mv "$STACKS_NODE_BIN_ARM64" target/release/stacks-node
+    mkdir -p target/release-lite && mv "$STACKS_NODE_BIN_ARM64" target/release-lite/stacks-node
     exit 0
   elif [ "$TARGETPLATFORM" = "linux/amd64" ] && [ -f "$STACKS_NODE_BIN_AMD64" ]; then
     echo "Using existing stacks-node binary: $STACKS_NODE_BIN_AMD64"
-    mkdir -p target/release && mv "$STACKS_NODE_BIN_AMD64" target/release/stacks-node
+    mkdir -p target/release-lite && mv "$STACKS_NODE_BIN_AMD64" target/release-lite/stacks-node
     exit 0
   fi
 
@@ -38,17 +38,20 @@ RUN <<EOF
     git reset --hard FETCH_HEAD
   fi
 
-  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --release
+  apt-get update && apt-get install -y libclang-dev
+  rustup toolchain install stable
+  rustup component add rustfmt --toolchain stable
+  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --package stacks-node --bin stacks-node --profile release-lite
 EOF
 
-FROM debian:bullseye-backports
+FROM debian:bookworm-backports
 
-COPY --from=builder /stacks/target/release/stacks-node /usr/local/bin/
-COPY --from=ruimarinho/bitcoin-core:0.21.1 /opt/bitcoin-*/bin /usr/local/bin
+COPY --from=builder /stacks/target/release-lite/stacks-node /usr/local/bin/
+COPY --from=dobtc/bitcoin:25.1 /opt/bitcoin-*/bin /usr/local/bin
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install -y curl/bullseye-backports gettext-base jq
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+RUN apt-get update && apt-get install -y curl gettext-base jq
+RUN curl -SLO https://deb.nodesource.com/nsolid_setup_deb.sh && chmod 500 nsolid_setup_deb.sh && ./nsolid_setup_deb.sh 20 && apt-get install nodejs -y
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 VOLUME /chainstate
@@ -64,7 +67,7 @@ ENV DATA_DIR=/chainstate/stacks-blockchain-data
 ENV BTC_ADDR=miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
 ENV BTC_ADDR_WIF=cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
 ENV MINER_SEED=9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
-ENV BITCOIN_PEER_HOST=localhost
+ENV BITCOIN_PEER_HOST=127.0.0.1
 ENV BITCOIN_PEER_PORT=18444
 ENV BITCOIN_RPC_PORT=18443
 ENV BITCOIN_RPC_USER=btc
@@ -73,7 +76,13 @@ ENV BITCOIN_RPC_PASS=btc
 ARG MINE_INTERVAL=5s
 ENV MINE_INTERVAL=$MINE_INTERVAL
 
-ARG STACKS_20_HEIGHT=103
+ARG POX_REWARD_LENGTH=10
+ENV POX_REWARD_LENGTH=$POX_REWARD_LENGTH
+
+ARG POX_PREPARE_LENGTH=5
+ENV POX_PREPARE_LENGTH=$POX_PREPARE_LENGTH
+
+ARG STACKS_20_HEIGHT=0
 ENV STACKS_20_HEIGHT=$STACKS_20_HEIGHT
 
 ARG STACKS_2_05_HEIGHT=104
@@ -93,6 +102,13 @@ ENV STACKS_23_HEIGHT=$STACKS_23_HEIGHT
 
 ARG STACKS_24_HEIGHT=111
 ENV STACKS_24_HEIGHT=$STACKS_24_HEIGHT
+
+ARG STACKS_25_HEIGHT=112
+ENV STACKS_25_HEIGHT=$STACKS_25_HEIGHT
+
+# do not boot into epoch3.0 for now (it doesn't work yet)
+ARG STACKS_30_HEIGHT=9999995
+ENV STACKS_30_HEIGHT=$STACKS_30_HEIGHT
 
 # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
 # ARG REWARD_RECIPIENT=STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN
@@ -135,8 +151,8 @@ RUN <<EOF
   bitcoind &
   BTCD_PID=$!
   bitcoin-cli -rpcwait getmininginfo
-  bitcoin-cli createwallet ""
-  bitcoin-cli importprivkey $BTC_ADDR_WIF "" false
+  bitcoin-cli -named createwallet wallet_name=main descriptors=false load_on_startup=true
+  bitcoin-cli -rpcwallet=main importprivkey $BTC_ADDR_WIF "" false
   bitcoin-cli generatetoaddress 101 $BTC_ADDR
 
   node event-observer.js &
@@ -145,11 +161,11 @@ RUN <<EOF
   export STACKS_EVENT_OBSERVER="127.0.0.1:3998"
   mkdir -p /chainstate/stacks-blockchain-data
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   while true; do
-    HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+    HEIGHT=$(curl -s 127.0.0.1:20443/v2/info | jq '.burn_block_height')
     if [ "$HEIGHT" = "101" ]; then
       echo "Stacks node caught up to Bitcoin block $HEIGHT"
       break
@@ -158,7 +174,7 @@ RUN <<EOF
   done
 
   while true; do
-    TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+    TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
     CONFS=$(echo "$TX" | jq '.[].confirmations')
     if [ "$CONFS" = "0" ]; then
       echo "Detected Stacks mining mempool tx, mining btc block..."
@@ -167,7 +183,7 @@ RUN <<EOF
       echo "Current Bitcoin chain height: $chain_height"
     
       while true; do
-        HEIGHT=$(curl -s localhost:20443/v2/info | jq '.burn_block_height')
+        HEIGHT=$(curl -s 127.0.0.1:20443/v2/info | jq '.burn_block_height')
         if [ "$HEIGHT" = "$chain_height" ]; then
           echo "Stacks node caught up to Bitcoin block $HEIGHT"
           break
@@ -177,7 +193,7 @@ RUN <<EOF
         sleep 0.1s
       done
 
-      if [ "$chain_height" = "$STACKS_24_HEIGHT" ]; then
+      if [ "$chain_height" = "$STACKS_25_HEIGHT" ]; then
         break
       fi
 
@@ -223,12 +239,12 @@ cat > run.sh <<'EOM'
   bitcoin-cli -rpcwait generatetoaddress 1 $BTC_ADDR
 
   envsubst < config.toml.in > config.toml
-  stacks-node start --config=config.toml &
+  stacks-node start --config config.toml &
   STACKS_PID=$!
 
   function start_miner() {
     while true; do
-      TX=$(bitcoin-cli listtransactions '*' 1 0 true)
+      TX=$(bitcoin-cli -rpcwallet=main listtransactions '*' 1 0 true)
       CONFS=$(echo "$TX" | jq '.[].confirmations')
       if [ "$CONFS" = "0" ]; then
         echo "Detected Stacks mining mempool tx, mining btc block..."

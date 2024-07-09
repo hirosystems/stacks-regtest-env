@@ -32,9 +32,11 @@ public_ip_address = "1.1.1.1:1234"
 
 [burnchain]
 chain = "bitcoin"
-mode = "krypton"
+mode = "neon"
 poll_time_secs = 1
 pox_2_activation = $STACKS_POX2_HEIGHT
+pox_reward_length = $POX_REWARD_LENGTH
+pox_prepare_length = $POX_PREPARE_LENGTH
 
 ### bitcoind-regtest connection info
 peer_host = "$BITCOIN_PEER_HOST"
@@ -44,6 +46,7 @@ rpc_ssl = false
 username = "$BITCOIN_RPC_USER"
 password = "$BITCOIN_RPC_PASS"
 timeout = 30
+wallet_name = "main"
 
 [[burnchain.epochs]]
 epoch_name = "1.0"
@@ -72,6 +75,15 @@ start_height = $STACKS_23_HEIGHT
 [[burnchain.epochs]]
 epoch_name = "2.4"
 start_height = $STACKS_24_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "2.5"
+start_height = $STACKS_25_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "3.0"
+start_height = $STACKS_30_HEIGHT
+
 
 [[ustx_balance]]
 address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"

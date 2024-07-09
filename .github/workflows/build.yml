@@ -4,19 +4,15 @@ on:
   push:
 
 env:
-  STACKS_BLOCKCHAIN_COMMIT: "feat/epoch-2.4"
+  STACKS_BLOCKCHAIN_COMMIT: e14022aa7e2eb82714c2ccaa3b8f2ed0f5568f8e
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.10.0
-        with:
-          access_token: ${{ github.token }}
-
   build-stacks-node:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -28,21 +24,15 @@ jobs:
           key: cache-stacks-node-${{ env.STACKS_BLOCKCHAIN_COMMIT }}
       - name: Install Rust - linux/amd64
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-gnu
+        run: rustup toolchain install stable
       - name: Install Rust - linux/arm64
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: aarch64-unknown-linux-gnu
+        run: rustup target add aarch64-unknown-linux-gnu
       - name: Install compilation tooling
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-aarch64-linux-gnu libc6-dev-arm64-cross gcc-aarch64-linux-gnu
+          sudo apt-get install -y g++-aarch64-linux-gnu gcc-aarch64-linux-gnu libgcc-11-dev-arm64-cross
       - name: Fetch Stacks node repo
         if: steps.cache.outputs.cache-hit != 'true'
         env:
@@ -81,10 +71,11 @@ jobs:
           CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
           AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
         run: |
-          cargo build --package stacks-node --bin stacks-node --release --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
+          rm ".cargo/config"
+          cargo build --package stacks-node --bin stacks-node --profile release-lite --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
           mkdir -p ../bin/x86_64-unknown-linux-gnu ../bin/aarch64-unknown-linux-gnu
-          cp target/x86_64-unknown-linux-gnu/release/stacks-node ../bin/x86_64-unknown-linux-gnu
-          cp target/aarch64-unknown-linux-gnu/release/stacks-node ../bin/aarch64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release-lite/stacks-node ../bin/x86_64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release-lite/stacks-node ../bin/aarch64-unknown-linux-gnu
       - uses: actions/upload-artifact@v3
         with:
           name: stacks-node-bin
@@ -94,7 +85,7 @@ jobs:
 
   build-push-docker:
     needs: build-stacks-node
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -115,13 +106,13 @@ jobs:
           images: hirosystems/stacks-api-e2e
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=stacks2.4,enable={{is_default_branch}}
-            type=raw,value=stacks2.4-{{branch}}-{{sha}}
-            type=ref,event=branch,prefix=stacks2.4-
-            type=ref,event=pr,prefix=stacks2.4-
-            type=semver,pattern={{version}},prefix=stacks2.4-
-            type=semver,pattern={{major}}.{{minor}},prefix=stacks2.4-
-            type=sha,prefix=stacks2.4-
+            type=raw,value=stacks3.0,enable={{is_default_branch}}
+            type=raw,value=stacks3.0-{{branch}}-{{sha}}
+            type=ref,event=branch,prefix=stacks3.0-
+            type=ref,event=pr,prefix=stacks3.0-
+            type=semver,pattern={{version}},prefix=stacks3.0-
+            type=semver,pattern={{major}}.{{minor}},prefix=stacks3.0-
+            type=sha,prefix=stacks3.0-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
