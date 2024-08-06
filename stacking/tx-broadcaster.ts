@@ -60,7 +60,7 @@ async function broadcast(tx: StacksTransaction, sender?: string) {
     return false;
   } else {
     if (label.includes('Flooder')) return true;
-    logger.debug(`Broadcast ${txType} from ${label} tx=${broadcastResult.txid}`);
+    logger.debug(`Broadcast ${txType} from ${label} tx=${broadcastResult.txid} at ${new Date()}`);
     return true;
   }
 }
@@ -98,15 +98,15 @@ function accountLabel(address: string) {
   return `Unknown (${address})`;
 }
 
-async function loop() {
+async function main() {
   await waitForNakamoto();
-  while (true) {
+  setInterval(async () => {
     try {
       await run();
     } catch (e) {
       logger.error('Error submitting stx-transfer tx:', e);
     }
-    await new Promise(resolve => setTimeout(resolve, broadcastInterval * 1000));
-  }
+  }, broadcastInterval * 1000);
 }
-loop();
+
+main();
