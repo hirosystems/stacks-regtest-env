@@ -65,10 +65,11 @@ async function run() {
           },
           `Account ${account.index} is unlocked, stack-stx required`
         );
-        await stackStx(poxInfo, account, account.balance);
+        await stackStx(poxInfo, account);
         txSubmitted = true;
         return;
       }
+
       const unlockHeightCycle = burnBlockToRewardCycle(account.unlockHeight);
       const nowCycle = burnBlockToRewardCycle(poxInfo.current_burnchain_block_height ?? 0);
       if (unlockHeightCycle === nowCycle + 1) {
@@ -104,13 +105,13 @@ async function run() {
   }
 }
 
-async function stackStx(poxInfo: PoxInfo, account: Account, balance: bigint) {
+async function stackStx(poxInfo: PoxInfo, account: Account) {
   // Bump min threshold by 50% to avoid getting stuck if threshold increases
   const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
   const amountToStx = BigInt(minStx) * BigInt(account.targetSlots);
-  if (amountToStx > balance) {
+  if (amountToStx > account.balance) {
     throw new Error(
-      `Insufficient balance to stack-stx (amount=${amountToStx}, balance=${balance})`
+      `Insufficient balance to stack-stx (amount=${amountToStx}, balance=${account.balance})`
     );
   }
   const authId = randInt();
