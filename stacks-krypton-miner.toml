@@ -1,9 +1,10 @@
 [node]
 name = "krypton-node"
-rpc_bind = "0.0.0.0:20443"
-p2p_bind = "0.0.0.0:20444"
-data_url = "http://127.0.0.1:20443"
-p2p_address = "127.0.0.1:20443"
+rpc_bind = "0.0.0.0:$RPC_BIND_PORT"
+p2p_bind = "0.0.0.0:$P2P_BIND_PORT"
+data_url = "http://127.0.0.1:$RPC_BIND_PORT"
+p2p_address = "127.0.0.1:$RPC_BIND_PORT"
+bootstrap_node = "$MINER_BOOTSTRAP"
 working_dir = "$DATA_DIR"
 
 seed = "$MINER_SEED"
@@ -11,22 +12,20 @@ local_peer_seed = "$MINER_SEED"
 
 miner = true
 use_test_genesis_chainstate = true
-pox_sync_sample_secs = 0
+pox_sync_sample_secs = 10
 wait_time_for_blocks = 0
 wait_time_for_microblocks = 0
 mine_microblocks = false
 microblock_frequency = 1000
-# mine_microblocks = true
-# max_microblocks = 10
+require_affirmed_anchor_blocks = false
 
 [miner]
 min_tx_fee = 1
-first_attempt_time_ms = 180_000
-subsequent_attempt_time_ms = 360_000
+first_attempt_time_ms = 5
+subsequent_attempt_time_ms = 30_000
 wait_for_block_download = false
 microblock_attempt_time_ms = 10
-#self_signing_seed = 1
-mining_key = "19ec1c3e31d139c989a23a27eac60d1abfad5277d3ae9604242514c738258efa01"
+mining_key = "$MINER_SEED"
 $REWARD_RECIPIENT_CONF
 
 [connection_options]
@@ -38,29 +37,30 @@ disable_inbound_handshakes = true
 disable_inbound_walks = true
 public_ip_address = "1.1.1.1:1234"
 auth_token = "12345"
+private_neighbors = false
 
 # Add stacks-api as an event observer
 [[events_observer]]
-endpoint = "stacks-api:3700"
+endpoint = "toxiproxy:3700"
 retry_count = 255
 include_data_events = false
 events_keys = ["*"]
 
 # Add stacks-signer as an event observer
 [[events_observer]]
-endpoint = "stacks-signer-1:30001"
+endpoint = "toxiproxy:30001"
 retry_count = 255
 include_data_events = false
 events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
 
 [[events_observer]]
-endpoint = "stacks-signer-2:30002"
+endpoint = "toxiproxy:30002"
 retry_count = 255
 include_data_events = false
 events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
 
 [[events_observer]]
-endpoint = "stacks-signer-3:30003"
+endpoint = "toxiproxy:30003"
 retry_count = 255
 include_data_events = false
 events_keys = ["stackerdb", "block_proposal", "burn_blocks"]

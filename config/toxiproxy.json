@@ -1,0 +1,56 @@
+[
+  {
+    "name": "stacks-node",
+    "listen": "[::]:20443",
+    "upstream": "stacks-node:30443",
+    "enabled": true
+  },
+  {
+    "name": "stacks-node-p2p",
+    "listen": "[::]:20444",
+    "upstream": "stacks-node:30444",
+    "enabled": true
+  },
+  {
+    "name": "stacks-miner-2",
+    "listen": "[::]:40443",
+    "upstream": "stacks-miner-2:50443",
+    "enabled": true
+  },
+  {
+    "name": "stacks-miner-2-p2p",
+    "listen": "[::]:40444",
+    "upstream": "stacks-miner-2:50444",
+    "enabled": true
+  },
+  {
+    "name": "stacks-api",
+    "listen": "[::]:3999",
+    "upstream": "stacks-api:4999",
+    "enabled": true
+  },
+  {
+    "name": "stacks-api-event-observer",
+    "listen": "[::]:3700",
+    "upstream": "stacks-api:4700",
+    "enabled": true
+  },
+  {
+    "name": "stacks-signer-1",
+    "listen": "[::]:30001",
+    "upstream": "stacks-signer-1:40001",
+    "enabled": true
+  },
+  {
+    "name": "stacks-signer-2",
+    "listen": "[::]:30002",
+    "upstream": "stacks-signer-2:40002",
+    "enabled": true
+  },
+  {
+    "name": "stacks-signer-3",
+    "listen": "[::]:30003",
+    "upstream": "stacks-signer-3:40003",
+    "enabled": true
+  }
+]
