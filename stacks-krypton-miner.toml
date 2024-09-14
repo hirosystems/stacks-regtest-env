@@ -65,6 +65,18 @@ retry_count = 255
 include_data_events = false
 events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
 
+[[events_observer]]
+endpoint = "toxiproxy:30004"
+retry_count = 1
+include_data_events = false
+events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
+
+[[events_observer]]
+endpoint = "toxiproxy:30005"
+retry_count = 1
+include_data_events = false
+events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
+
 [burnchain]
 chain = "bitcoin"
 mode = "nakamoto-neon"
@@ -175,6 +187,24 @@ amount = 10000000000000000
 # mnemonic = "female adjust gallery certain visit token during great side clown fitness like hurt clip knife warm bench start reunion globe detail dream depend fortune"
 # stx_address: ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP
 # btc_address: n2v875jbJ4RjBnTjgbfikDfnwsDV5iUByw
+
+# Stacker/signer
+[[ustx_balance]]
+address = "ST1592W6G7MRDEND886QBZN2YE5Z7TPMXZ5TV0F31"
+amount = 10000000000000000
+# secret_key: bff7cbe82409a993a11ea74ba95c4aaf44fbbb8fbe9aaa507a73ef16e74372df01
+# mnemonic = "flash dash tuna jaguar motion owner van thought change banana donkey example stomach aunt collect parade code deliver broken awake return garbage welcome employ"
+# stx_address: ST1592W6G7MRDEND886QBZN2YE5Z7TPMXZ5TV0F31
+# btc_address: mnKEXeMhtSLu155nyv4pwmkD1bPfwdgRpG
+
+# Stacker/signer
+[[ustx_balance]]
+address = "STHJZMGZWCWHBZKDD90GCSN4KEFSTQX05NEJ2BDD"
+amount = 10000000000000000
+# secret_key: f43fcfe1c5c9c5e2f8a4ee1d10225d000c3055e9510e39cc2d9b03571cd0f53f01
+# mnemonic = "conduct echo virtual chalk warrior cake master return fuel online dolphin alert hole cloth rapid cave today unfair flight heart dog candy mad adult"
+# stx_address: STHJZMGZWCWHBZKDD90GCSN4KEFSTQX05NEJ2BDD
+# btc_address: mij1ER3qsDE2CJ3XriNNiy1kYyZQcTS9AD
 
 [[ustx_balance]]
 address = "ST5B3TD6YF085JWKSSW9HDWCDZTR842RFNP19HQC"

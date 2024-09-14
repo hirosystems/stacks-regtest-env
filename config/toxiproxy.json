@@ -52,5 +52,17 @@
     "listen": "[::]:30003",
     "upstream": "stacks-signer-3:40003",
     "enabled": true
+  },
+  {
+    "name": "stacks-signer-4",
+    "listen": "[::]:30004",
+    "upstream": "stacks-signer-4:40004",
+    "enabled": true
+  },
+  {
+    "name": "stacks-signer-5",
+    "listen": "[::]:30005",
+    "upstream": "stacks-signer-5:40005",
+    "enabled": true
   }
 ]

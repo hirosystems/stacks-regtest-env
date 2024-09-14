@@ -10,10 +10,11 @@ x-common-vars:
   - &MINER_2_RECIPIENT ${MINER_2_RECIPIENT:-ST29SJ8NEJGB9BZZM2QM1VGC8DS5QYBPGHWN5N0V7}
   - &MINER_1_BOOTSTRAP 03f4262c509e22e37428abc1cd46d09f9e8b1a125e856b84d5d36cd51deffca22e@127.0.0.1:40444
   - &MINER_2_BOOTSTRAP 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c@127.0.0.1:20444
-  - &BITCOIN_PEER_PORT 18444
-  - &BITCOIN_RPC_PORT 18443
+  - &STACKING_KEYS 6a1a754ba863d7bab14adbbc3f8ebb090af9e871ace621d3e5ab634e1422885e01,b463f0df6c05d2f156393eee73f8016c5372caa0e9e29a901bb7171d90dc4f1401,7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01 # first 3 signers
   - &BITCOIN_RPC_USER btc
   - &BITCOIN_RPC_PASS btc
+  - &BITCOIN_RPC_PORT 18443
+  - &BITCOIN_PEER_PORT 18444
   - &MINE_INTERVAL ${MINE_INTERVAL:-1s}
   - &MINE_INTERVAL_EPOCH25 ${MINE_INTERVAL_EPOCH25:-2s} # 10 second bitcoin block times in epoch 2.5
   - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-7s} # 10 minute bitcoin block times in epoch 3
@@ -309,7 +310,7 @@ services:
       STACKS_25_HEIGHT: *STACKS_25_HEIGHT
       POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
       POX_REWARD_LENGTH: *POX_REWARD_LENGTH
-      STACKING_KEYS: 6a1a754ba863d7bab14adbbc3f8ebb090af9e871ace621d3e5ab634e1422885e01,b463f0df6c05d2f156393eee73f8016c5372caa0e9e29a901bb7171d90dc4f1401,7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01
+      STACKING_KEYS: *STACKING_KEYS
     depends_on:
       - stacks-node
     entrypoint:
@@ -382,7 +383,7 @@ services:
     depends_on:
       - stacks-node
     volumes:
-      - ./signer-0.toml:/root/config.toml.in
+      - ./signer.toml:/root/config.toml.in
       - chainstate-1:/chainstate
     environment:
       SIGNER_DB_PATH: /chainstate/stacks-signer-1.sqlite
@@ -408,7 +409,7 @@ services:
     depends_on:
       - stacks-node
     volumes:
-      - ./signer-0.toml:/root/config.toml.in
+      - ./signer.toml:/root/config.toml.in
       - chainstate-1:/chainstate
     environment:
       SIGNER_DB_PATH: /chainstate/stacks-signer-2.sqlite
@@ -434,13 +435,65 @@ services:
     depends_on:
       - stacks-node
     volumes:
-      - ./signer-0.toml:/root/config.toml.in
+      - ./signer.toml:/root/config.toml.in
       - chainstate-1:/chainstate
     environment:
       SIGNER_DB_PATH: /chainstate/stacks-signer-3.sqlite
       STACKS_NODE_HOST: toxiproxy:20443
       STACKS_SIGNER_ENDPOINT: 0.0.0.0:40003
       SIGNER_PRIVATE_KEY: 7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        envsubst < config.toml.in > config.toml
+        exec stacks-signer run --config config.toml
+
+  stacks-signer-4:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-node
+      args:
+        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+    depends_on:
+      - stacks-node
+    volumes:
+      - ./signer.toml:/root/config.toml.in
+      - chainstate-1:/chainstate
+    environment:
+      SIGNER_DB_PATH: /chainstate/stacks-signer-4.sqlite
+      STACKS_NODE_HOST: toxiproxy:20443
+      STACKS_SIGNER_ENDPOINT: 0.0.0.0:40004
+      SIGNER_PRIVATE_KEY: bff7cbe82409a993a11ea74ba95c4aaf44fbbb8fbe9aaa507a73ef16e74372df01
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        envsubst < config.toml.in > config.toml
+        exec stacks-signer run --config config.toml
+
+  stacks-signer-5:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-node
+      args:
+        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+    depends_on:
+      - stacks-node
+    volumes:
+      - ./signer.toml:/root/config.toml.in
+      - chainstate-1:/chainstate
+    environment:
+      SIGNER_DB_PATH: /chainstate/stacks-signer-5.sqlite
+      STACKS_NODE_HOST: toxiproxy:20443
+      STACKS_SIGNER_ENDPOINT: 0.0.0.0:40005
+      SIGNER_PRIVATE_KEY: f43fcfe1c5c9c5e2f8a4ee1d10225d000c3055e9510e39cc2d9b03571cd0f53f01
     entrypoint:
       - /bin/bash
       - -c
