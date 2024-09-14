@@ -189,63 +189,64 @@ services:
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config config.toml
 
-  stacks-miner-2:
-    networks:
-      - stacks
-    build:
-      context: .
-      dockerfile: Dockerfile.stacks-node
-      args:
-        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
-    depends_on:
-      - bitcoind
-      - toxiproxy
-    ports:
-      - "50443:50443"
-    volumes:
-      - ./stacks-krypton-miner-follower.toml/:/root/config.toml.in
-      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
-      - ./init-data-2:/init-data
-      - chainstate-2:/chainstate
-    environment:
-      # STACKS_LOG_TRACE: 1 # uncomment for trace logging
-      # STACKS_LOG_DEBUG: 1
-      # RUST_LOG: debug
-      DATA_DIR: /chainstate/stacks-blockchain-miner-data
-      BITCOIN_PEER_HOST: bitcoind
-      BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
-      BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
-      BITCOIN_RPC_USER: *BITCOIN_RPC_USER
-      BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
-      RPC_BIND_PORT: 50443
-      P2P_BIND_PORT: 50444
-      MINER_SEED: *MINER_2_SEED
-      MINER_BOOTSTRAP: *MINER_2_BOOTSTRAP
-      STACKS_20_HEIGHT: *STACKS_20_HEIGHT
-      STACKS_2_05_HEIGHT: *STACKS_2_05_HEIGHT
-      STACKS_21_HEIGHT: *STACKS_21_HEIGHT
-      STACKS_POX2_HEIGHT: *STACKS_POX2_HEIGHT
-      STACKS_22_HEIGHT: *STACKS_22_HEIGHT
-      STACKS_23_HEIGHT: *STACKS_23_HEIGHT
-      STACKS_24_HEIGHT: *STACKS_24_HEIGHT
-      STACKS_25_HEIGHT: *STACKS_25_HEIGHT
-      STACKS_30_HEIGHT: *STACKS_30_HEIGHT
-      POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
-      POX_REWARD_LENGTH: *POX_REWARD_LENGTH
-      REWARD_RECIPIENT: *MINER_2_RECIPIENT
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        set -e
-        if [[ ! -z "$${REWARD_RECIPIENT}" ]]; then
-          export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$${REWARD_RECIPIENT}\""
-        fi
-        mkdir -p $${DATA_DIR}
-        rm -rf $${DATA_DIR}/*
-        envsubst < config.toml.in > config.toml
-        bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
-        exec stacks-node start --config config.toml
+  # WIP
+  # stacks-miner-2:
+  #   networks:
+  #     - stacks
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.stacks-node
+  #     args:
+  #       GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+  #   depends_on:
+  #     - bitcoind
+  #     - toxiproxy
+  #   ports:
+  #     - "50443:50443"
+  #   volumes:
+  #     - ./stacks-krypton-miner-follower.toml/:/root/config.toml.in
+  #     - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+  #     - ./init-data-2:/init-data
+  #     - chainstate-2:/chainstate
+  #   environment:
+  #     # STACKS_LOG_TRACE: 1 # uncomment for trace logging
+  #     # STACKS_LOG_DEBUG: 1
+  #     # RUST_LOG: debug
+  #     DATA_DIR: /chainstate/stacks-blockchain-miner-data
+  #     BITCOIN_PEER_HOST: bitcoind
+  #     BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
+  #     BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
+  #     BITCOIN_RPC_USER: *BITCOIN_RPC_USER
+  #     BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
+  #     RPC_BIND_PORT: 50443
+  #     P2P_BIND_PORT: 50444
+  #     MINER_SEED: *MINER_2_SEED
+  #     MINER_BOOTSTRAP: *MINER_2_BOOTSTRAP
+  #     STACKS_20_HEIGHT: *STACKS_20_HEIGHT
+  #     STACKS_2_05_HEIGHT: *STACKS_2_05_HEIGHT
+  #     STACKS_21_HEIGHT: *STACKS_21_HEIGHT
+  #     STACKS_POX2_HEIGHT: *STACKS_POX2_HEIGHT
+  #     STACKS_22_HEIGHT: *STACKS_22_HEIGHT
+  #     STACKS_23_HEIGHT: *STACKS_23_HEIGHT
+  #     STACKS_24_HEIGHT: *STACKS_24_HEIGHT
+  #     STACKS_25_HEIGHT: *STACKS_25_HEIGHT
+  #     STACKS_30_HEIGHT: *STACKS_30_HEIGHT
+  #     POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
+  #     POX_REWARD_LENGTH: *POX_REWARD_LENGTH
+  #     REWARD_RECIPIENT: *MINER_2_RECIPIENT
+  #   entrypoint:
+  #     - /bin/bash
+  #     - -c
+  #     - |
+  #       set -e
+  #       if [[ ! -z "$${REWARD_RECIPIENT}" ]]; then
+  #         export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$${REWARD_RECIPIENT}\""
+  #       fi
+  #       mkdir -p $${DATA_DIR}
+  #       rm -rf $${DATA_DIR}/*
+  #       envsubst < config.toml.in > config.toml
+  #       bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
+  #       exec stacks-node start --config config.toml
 
   stacker:
     networks:
