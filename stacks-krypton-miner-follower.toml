@@ -2,8 +2,8 @@
 name = "krypton-node"
 rpc_bind = "0.0.0.0:$RPC_BIND_PORT"
 p2p_bind = "0.0.0.0:$P2P_BIND_PORT"
-# data_url = "http://127.0.0.1:$RPC_BIND_PORT"
-# p2p_address = "127.0.0.1:$RPC_BIND_PORT"
+data_url = "http://$MINER_IP:40443"
+p2p_address = "$MINER_IP:40444"
 bootstrap_node = "$MINER_BOOTSTRAP"
 working_dir = "$DATA_DIR"
 
@@ -35,7 +35,7 @@ $REWARD_RECIPIENT_CONF
 # disable_block_download = true
 # disable_inbound_handshakes = true
 # disable_inbound_walks = true
-# public_ip_address = "1.1.1.1:1234"
+public_ip_address = "$MINER_IP:40444"
 auth_token = "12345"
 # private_neighbors = false
 
