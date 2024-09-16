@@ -4,7 +4,7 @@ rpc_bind = "0.0.0.0:$RPC_BIND_PORT"
 p2p_bind = "0.0.0.0:$P2P_BIND_PORT"
 data_url = "http://127.0.0.1:$RPC_BIND_PORT"
 p2p_address = "127.0.0.1:$RPC_BIND_PORT"
-bootstrap_node = "$MINER_BOOTSTRAP"
+# bootstrap_node = "$MINER_BOOTSTRAP"
 working_dir = "$DATA_DIR"
 
 seed = "$MINER_SEED"
@@ -32,12 +32,12 @@ $REWARD_RECIPIENT_CONF
 # inv_sync_interval = 10
 # download_interval = 10
 # walk_interval = 10
-disable_block_download = true
-disable_inbound_handshakes = true
-disable_inbound_walks = true
-public_ip_address = "1.1.1.1:1234"
+# disable_block_download = true
+# disable_inbound_handshakes = true
+# disable_inbound_walks = true
+public_ip_address = "127.0.0.1:$RPC_BIND_PORT"
 auth_token = "12345"
-private_neighbors = false
+# private_neighbors = false
 
 # Add stacks-api as an event observer
 [[events_observer]]
@@ -46,36 +46,7 @@ retry_count = 255
 include_data_events = false
 events_keys = ["*"]
 
-# Add stacks-signer as an event observer
-[[events_observer]]
-endpoint = "toxiproxy:30001"
-retry_count = 255
-include_data_events = false
-events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
-
-[[events_observer]]
-endpoint = "toxiproxy:30002"
-retry_count = 255
-include_data_events = false
-events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
-
-[[events_observer]]
-endpoint = "toxiproxy:30003"
-retry_count = 255
-include_data_events = false
-events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
-
-[[events_observer]]
-endpoint = "toxiproxy:30004"
-retry_count = 1
-include_data_events = false
-events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
-
-[[events_observer]]
-endpoint = "toxiproxy:30005"
-retry_count = 1
-include_data_events = false
-events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
+$EVENTS_OBSERVERS_CONF
 
 [burnchain]
 chain = "bitcoin"

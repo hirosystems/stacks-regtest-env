@@ -1,7 +1,7 @@
 version: "3.9"
 
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT 75d7e27c7cd174f9efbe880bbcc5b1375fe466c9 # develop sep 13 2024
+  - &STACKS_BLOCKCHAIN_COMMIT 319e93bc08b1502489306852bcde1b1e251327e9 # develop sep 16 2024
   - &STACKS_API_COMMIT f6e50f6d28f292d79dbebd70b2b00831c95997f6 # 7.13.2
   - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT,mtyP5HvJHKgdFgGPA6repNs5CULDWnRvdm
   - &MINER_1_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201
@@ -15,9 +15,9 @@ x-common-vars:
   - &BITCOIN_RPC_PASS btc
   - &BITCOIN_RPC_PORT 18443
   - &BITCOIN_PEER_PORT 18444
-  - &MINE_INTERVAL ${MINE_INTERVAL:-1s}
-  - &MINE_INTERVAL_EPOCH25 ${MINE_INTERVAL_EPOCH25:-2s} # 10 second bitcoin block times in epoch 2.5
-  - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-7s} # 10 minute bitcoin block times in epoch 3
+  - &MINE_INTERVAL ${MINE_INTERVAL:-5s}
+  - &MINE_INTERVAL_EPOCH25 ${MINE_INTERVAL_EPOCH25:-10s} # 10 second bitcoin block times in epoch 2.5
+  - &MINE_INTERVAL_EPOCH3 ${MINE_INTERVAL_EPOCH3:-12s} # 10 minute bitcoin block times in epoch 3
   - &NAKAMOTO_BLOCK_INTERVAL 3 # seconds to wait between issuing stx-transfer transactions (which triggers Nakamoto block production)
   - &STACKS_20_HEIGHT ${STACKS_20_HEIGHT:-0}
   - &STACKS_2_05_HEIGHT ${STACKS_2_05_HEIGHT:-102}
@@ -31,7 +31,6 @@ x-common-vars:
   - &STACKING_CYCLES ${STACKING_CYCLES:-1} # number of cycles to stack-stx or stack-extend for
   - &POX_PREPARE_LENGTH ${POX_PREPARE_LENGTH:-5}
   - &POX_REWARD_LENGTH ${POX_REWARD_LENGTH:-20}
-
   - &EXIT_FROM_MONITOR 1 # set to "1" to automatically shut down via monitor.ts
 
 services:
@@ -110,9 +109,10 @@ services:
             else
               echo "Detected Stacks mining mempool tx, mining btc block..."
             fi
-            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${BTC_ADDRS[$${CURRENT_ADDR_INDEX}]}"
-            echo "Mined a block to address: $${BTC_ADDRS[$${CURRENT_ADDR_INDEX}]}"
-            CURRENT_ADDR_INDEX=$$(( ($${CURRENT_ADDR_INDEX} + 1) % $${#BTC_ADDRS[@]} ))
+            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${BTC_ADDRS[0]}"
+            # bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${BTC_ADDRS[$${CURRENT_ADDR_INDEX}]}"
+            # echo "Mined a block to address: $${BTC_ADDRS[$${CURRENT_ADDR_INDEX}]}"
+            # CURRENT_ADDR_INDEX=$$(( ($${CURRENT_ADDR_INDEX} + 1) % $${#BTC_ADDRS[@]} ))
             DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
           else
             echo "No Stacks mining tx detected"
@@ -175,6 +175,73 @@ services:
       POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
       POX_REWARD_LENGTH: *POX_REWARD_LENGTH
       REWARD_RECIPIENT: *MINER_1_RECIPIENT
+      EVENT_OBSERVERS: toxiproxy:30001,toxiproxy:30002,toxiproxy:30003,toxiproxy:30004,toxiproxy:30005
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        if [[ ! -z "$${REWARD_RECIPIENT}" ]]; then
+          export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$${REWARD_RECIPIENT}\""
+        fi
+        if [[ ! -z "$${EVENT_OBSERVERS}" ]]; then
+          IFS=',' read -ra OBSERVERS <<< "$${EVENT_OBSERVERS}"
+          EVENTS_OBSERVERS_CONF=""
+          for observer in "$${OBSERVERS[@]}"; do
+            EVENTS_OBSERVERS_CONF+="[[events_observer]]"$'\n'"endpoint = \"$${observer}\""$'\n'"retry_count = 255"$'\n'"include_data_events = false"$'\n'"events_keys = [\"stackerdb\", \"block_proposal\", \"burn_blocks\"]"$'\n'
+          done
+          export EVENTS_OBSERVERS_CONF
+        fi
+        mkdir -p $${DATA_DIR}
+        rm -rf $${DATA_DIR}/*
+        envsubst < config.toml.in > config.toml
+        bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
+        exec stacks-node start --config config.toml
+
+  stacks-miner-2:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.stacks-node
+      args:
+        GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
+    depends_on:
+      - bitcoind
+      - toxiproxy
+    ports:
+      - "50443:50443"
+    volumes:
+      - ./stacks-krypton-miner-follower.toml/:/root/config.toml.in
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+      - ./init-data-2:/init-data
+      - chainstate-2:/chainstate
+    environment:
+      # STACKS_LOG_TRACE: 1 # uncomment for trace logging
+      # STACKS_LOG_DEBUG: 1
+      # RUST_LOG: debug
+      DATA_DIR: /chainstate/stacks-blockchain-miner-data
+      BITCOIN_PEER_HOST: bitcoind
+      BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
+      BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: *BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
+      RPC_BIND_PORT: 50443
+      P2P_BIND_PORT: 50444
+      MINER_SEED: *MINER_2_SEED
+      MINER_BOOTSTRAP: *MINER_2_BOOTSTRAP
+      STACKS_20_HEIGHT: *STACKS_20_HEIGHT
+      STACKS_2_05_HEIGHT: *STACKS_2_05_HEIGHT
+      STACKS_21_HEIGHT: *STACKS_21_HEIGHT
+      STACKS_POX2_HEIGHT: *STACKS_POX2_HEIGHT
+      STACKS_22_HEIGHT: *STACKS_22_HEIGHT
+      STACKS_23_HEIGHT: *STACKS_23_HEIGHT
+      STACKS_24_HEIGHT: *STACKS_24_HEIGHT
+      STACKS_25_HEIGHT: *STACKS_25_HEIGHT
+      STACKS_30_HEIGHT: *STACKS_30_HEIGHT
+      POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
+      POX_REWARD_LENGTH: *POX_REWARD_LENGTH
+      REWARD_RECIPIENT: *MINER_2_RECIPIENT
     entrypoint:
       - /bin/bash
       - -c
@@ -188,65 +255,6 @@ services:
         envsubst < config.toml.in > config.toml
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config config.toml
-
-  # WIP
-  # stacks-miner-2:
-  #   networks:
-  #     - stacks
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.stacks-node
-  #     args:
-  #       GIT_COMMIT: *STACKS_BLOCKCHAIN_COMMIT
-  #   depends_on:
-  #     - bitcoind
-  #     - toxiproxy
-  #   ports:
-  #     - "50443:50443"
-  #   volumes:
-  #     - ./stacks-krypton-miner-follower.toml/:/root/config.toml.in
-  #     - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
-  #     - ./init-data-2:/init-data
-  #     - chainstate-2:/chainstate
-  #   environment:
-  #     # STACKS_LOG_TRACE: 1 # uncomment for trace logging
-  #     # STACKS_LOG_DEBUG: 1
-  #     # RUST_LOG: debug
-  #     DATA_DIR: /chainstate/stacks-blockchain-miner-data
-  #     BITCOIN_PEER_HOST: bitcoind
-  #     BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
-  #     BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
-  #     BITCOIN_RPC_USER: *BITCOIN_RPC_USER
-  #     BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
-  #     RPC_BIND_PORT: 50443
-  #     P2P_BIND_PORT: 50444
-  #     MINER_SEED: *MINER_2_SEED
-  #     MINER_BOOTSTRAP: *MINER_2_BOOTSTRAP
-  #     STACKS_20_HEIGHT: *STACKS_20_HEIGHT
-  #     STACKS_2_05_HEIGHT: *STACKS_2_05_HEIGHT
-  #     STACKS_21_HEIGHT: *STACKS_21_HEIGHT
-  #     STACKS_POX2_HEIGHT: *STACKS_POX2_HEIGHT
-  #     STACKS_22_HEIGHT: *STACKS_22_HEIGHT
-  #     STACKS_23_HEIGHT: *STACKS_23_HEIGHT
-  #     STACKS_24_HEIGHT: *STACKS_24_HEIGHT
-  #     STACKS_25_HEIGHT: *STACKS_25_HEIGHT
-  #     STACKS_30_HEIGHT: *STACKS_30_HEIGHT
-  #     POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
-  #     POX_REWARD_LENGTH: *POX_REWARD_LENGTH
-  #     REWARD_RECIPIENT: *MINER_2_RECIPIENT
-  #   entrypoint:
-  #     - /bin/bash
-  #     - -c
-  #     - |
-  #       set -e
-  #       if [[ ! -z "$${REWARD_RECIPIENT}" ]]; then
-  #         export REWARD_RECIPIENT_CONF="block_reward_recipient = \"$${REWARD_RECIPIENT}\""
-  #       fi
-  #       mkdir -p $${DATA_DIR}
-  #       rm -rf $${DATA_DIR}/*
-  #       envsubst < config.toml.in > config.toml
-  #       bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
-  #       exec stacks-node start --config config.toml
 
   stacker:
     networks:
