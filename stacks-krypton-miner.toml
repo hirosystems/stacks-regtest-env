@@ -39,13 +39,6 @@ public_ip_address = "$MINER_IP:20444"
 auth_token = "12345"
 # private_neighbors = false
 
-# Add stacks-api as an event observer
-[[events_observer]]
-endpoint = "toxiproxy:3700"
-retry_count = 255
-include_data_events = false
-events_keys = ["*"]
-
 $EVENTS_OBSERVERS_CONF
 
 [burnchain]
