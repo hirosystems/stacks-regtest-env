@@ -39,6 +39,13 @@ public_ip_address = "$MINER_IP:20444"
 auth_token = "12345"
 # private_neighbors = false
 
+# Add stacks-api as an event observer
+[[events_observer]]
+endpoint = "stacks-api:3700"
+retry_count = 255
+include_data_events = false
+events_keys = ["stx", "memtx", "burn_blocks", "microblocks"] # all but "stackerdb", "block_proposal"
+
 $EVENTS_OBSERVERS_CONF
 
 [burnchain]

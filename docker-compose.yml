@@ -1,7 +1,7 @@
 version: "3.9"
 
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT 319e93bc08b1502489306852bcde1b1e251327e9 # develop sep 16 2024
+  - &STACKS_BLOCKCHAIN_COMMIT 4dc290218d81ab9956c37b8640200bd53fd9877d # develop sep 17 2024
   - &STACKS_API_COMMIT f6e50f6d28f292d79dbebd70b2b00831c95997f6 # 7.13.2
   # - &PROXY_IP 172.18.0.100
   - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT,mtyP5HvJHKgdFgGPA6repNs5CULDWnRvdm
@@ -178,7 +178,7 @@ services:
       POX_PREPARE_LENGTH: *POX_PREPARE_LENGTH
       POX_REWARD_LENGTH: *POX_REWARD_LENGTH
       REWARD_RECIPIENT: *MINER_1_RECIPIENT
-      EVENT_OBSERVERS: stacks-api:3700,stacks-signer-1:30001,stacks-signer-2:30002,stacks-signer-3:30003,stacks-signer-4:30004,stacks-signer-5:30005
+      EVENT_OBSERVERS: stacks-signer-1:30001,stacks-signer-2:30002,stacks-signer-3:30003,stacks-signer-4:30004,stacks-signer-5:30005
     entrypoint:
       - /bin/bash
       - -c
@@ -261,6 +261,7 @@ services:
         rm -rf $${DATA_DIR}/*
         envsubst < config.toml.in > config.toml
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
+        sleep 20
         exec stacks-node start --config config.toml
 
   stacker:
