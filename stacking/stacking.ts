@@ -106,7 +106,7 @@ async function run() {
 }
 
 async function stackStx(poxInfo: PoxInfo, account: Account) {
-  // Bump min threshold by 50% to avoid getting stuck if threshold increases
+  // Bump min threshold by 25% to avoid getting stuck if threshold increases
   const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.25);
   const amountToStx = BigInt(minStx) * BigInt(account.targetSlots);
   if (amountToStx > account.balance) {

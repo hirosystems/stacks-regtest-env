@@ -16,6 +16,7 @@ RUN git init && \
     git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT" && \
     git reset --hard FETCH_HEAD
 
+RUN cargo update
 RUN cargo build --package stacks-node --package stacks-signer --bin stacks-node --bin stacks-signer
 
 FROM debian:bookworm

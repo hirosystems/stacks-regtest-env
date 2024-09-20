@@ -151,7 +151,7 @@ cat > /root/stack.js <<'EOM'
     burnBlockHeight: parseInt(process.argv[3]),
     poxAddress: 'mvuYDknzDtPgGqm2GnbAbmGMLwiyW3AwFP',
     cycles: 12,
-    privateKey: '6a1a754ba863d7bab14adbbc3f8ebb090af9e871ace621d3e5ab634e1422885e01',
+    privateKey: '530d9f61984c888536871c6573073bdfc0058896dc1adfe9a6a10dfacadc209101',
     fee: 1000,
     nonce: 0,
   })
@@ -211,7 +211,7 @@ RUN <<EOF
       DEFAULT_TIMEOUT=$(($(date +%s) + 30))
       chain_height=$(bitcoin-cli getblockcount)
       echo "Current Bitcoin chain height: $chain_height"
-    
+
       POX_CONTRACT=$(curl -s localhost:20443/v2/pox | jq -r '.contract_id')
       BURN_HEIGHT=$(curl -s localhost:20443/v2/pox | jq -r '.current_burnchain_block_height')
       echo "POX contract check $BURN_HEIGHT $POX_CONTRACT"
