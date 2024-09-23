@@ -143,19 +143,16 @@ services:
     networks:
       - stacks
     environment:
+      BACKEND_MAINNET_HTTP_HOST: "bitcoin-api"
       FRONTEND_HTTP_PORT: "8080"
     ports:
       - 8080:8080
-    depends_on:
-      - bitcoind
     image: mempool/frontend:v3.0.0
     command: "./wait-for bitcoin-db:3306 --timeout=720 -- nginx -g 'daemon off;'"
 
   bitcoin-api:
     networks:
       - stacks
-    depends_on:
-      - bitcoind
     environment:
       MEMPOOL_BACKEND: "electrum"
       ELECTRUM_HOST: "electrs"
