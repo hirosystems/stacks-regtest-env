@@ -3,6 +3,8 @@ version: "3.9"
 x-common-vars:
   - &STACKS_BLOCKCHAIN_COMMIT 5321154f30c2387ed52e0f82ffd9476fe963cc84 # develop, Aug 15, 11:30
   - &STACKS_API_COMMIT f6e50f6d28f292d79dbebd70b2b00831c95997f6 # 7.13.2
+  - &ELECTRS_COMMIT 603830f1b921928089c558d90519b7ca0c0d4658 # 0.10.5
+  - &ELECTRUM_SERVER_PORT 60400
   - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
@@ -110,6 +112,81 @@ services:
           sleep $${SLEEP_DURATION} &
           wait || exit 0
         done
+
+  electrs:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.electrs
+      args:
+        GIT_COMMIT: *ELECTRS_COMMIT
+    depends_on:
+      - bitcoind
+    volumes:
+      - ./electrs.toml/:/electrs/config.toml.in
+    environment:
+      BITCOIN_PEER_HOST: bitcoind
+      BITCOIN_PEER_PORT: *BITCOIN_PEER_PORT
+      BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: *BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
+      ELECTRUM_SERVER_PORT: *ELECTRUM_SERVER_PORT
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        envsubst < /electrs/config.toml.in > /electrs/config.toml
+        exec electrs --conf /electrs/config.toml
+
+  mempool-web:
+    networks:
+      - stacks
+    environment:
+      FRONTEND_HTTP_PORT: "8080"
+    ports:
+      - 8080:8080
+    depends_on:
+      - bitcoind
+    image: mempool/frontend:v3.0.0
+    command: "./wait-for bitcoin-db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+
+  bitcoin-api:
+    networks:
+      - stacks
+    depends_on:
+      - bitcoind
+    environment:
+      MEMPOOL_BACKEND: "electrum"
+      ELECTRUM_HOST: "electrs"
+      ELECTRUM_PORT: *ELECTRUM_SERVER_PORT
+      ELECTRUM_TLS_ENABLED: "false"
+      CORE_RPC_HOST: bitcoind
+      CORE_RPC_PORT: *BITCOIN_RPC_PORT
+      CORE_RPC_USERNAME: *BITCOIN_RPC_USER
+      CORE_RPC_PASSWORD: *BITCOIN_RPC_PASS
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: "bitcoin-db"
+      DATABASE_DATABASE: "mempool"
+      DATABASE_USERNAME: "mempool"
+      DATABASE_PASSWORD: "mempool"
+      STATISTICS_ENABLED: "true"
+      MEMPOOL_BLOCKS_SUMMARIES_INDEXING: "true"
+      MEMPOOL_INDEXING_BLOCKS_AMOUNT: "true"
+      MEMPOOL_AUTOMATIC_POOLS_UPDATE: "true"
+      MEMPOOL_CPFP_INDEXING: "true"
+    image: mempool/backend:v3.0.0
+    command: "./wait-for-it.sh bitcoin-db:3306 --timeout=720 --strict -- ./start.sh"
+
+  bitcoin-db:
+    networks:
+      - stacks
+    environment:
+      MYSQL_DATABASE: "mempool"
+      MYSQL_USER: "mempool"
+      MYSQL_PASSWORD: "mempool"
+      MYSQL_ROOT_PASSWORD: "admin"
+    image: mariadb:10.5.21
 
   stacks-node:
     networks:

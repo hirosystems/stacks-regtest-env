@@ -1,0 +1,29 @@
+FROM rust:bookworm AS builder
+
+# TODO: is there a built-in required arg syntax?
+ARG GIT_COMMIT
+RUN test -n "$GIT_COMMIT" || (echo "GIT_COMMIT not set" && false)
+
+RUN echo "Building electrs from commit: https://github.com/romanz/electrs/commit/$GIT_COMMIT"
+
+RUN apt-get update && apt-get install -y libclang-dev
+RUN rustup toolchain install stable
+RUN rustup component add rustfmt --toolchain stable
+
+WORKDIR /electrs
+RUN git init && \
+    git remote add origin https://github.com/romanz/electrs.git && \
+    git -c protocol.version=2 fetch --depth=1 origin "$GIT_COMMIT" && \
+    git reset --hard FETCH_HEAD
+
+RUN cargo build
+
+FROM debian:bookworm
+
+COPY --from=builder /electrs/target/debug/electrs /usr/local/bin/
+
+RUN apt-get update && apt-get install -y curl gettext-base jq
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR /root
+CMD ["electrs", "--conf", "/electrs/config.toml"]
