@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:bookworm as builder
+FROM rust:bookworm AS builder
 
 # A commit hash, tag, or branch
 ARG GIT_COMMIT=d0f5712332619b3140badc2d25856975d2747004
