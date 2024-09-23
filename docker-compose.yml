@@ -83,7 +83,14 @@ services:
         bitcoin-cli -rpcconnect=bitcoind importaddress $${BTC_ADDR} "" false
         bitcoin-cli -rpcconnect=bitcoind generatetoaddress $${INIT_BLOCKS} $${BTC_ADDR}
         DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
+        RANDOM_ADDR=$$(bitcoin-cli -rpcconnect=bitcoind getnewaddress)
         while true; do
+          UTXO_COUNT=$$(bitcoin-cli -rpcconnect=bitcoind listunspent 0 9999999 '[ "'"$${BTC_ADDR}"'" ]' | jq '. | length')
+          if [ "$${UTXO_COUNT}" -gt 100 ]; then
+            MINING_ADDR="$${RANDOM_ADDR}"
+          else
+            MINING_ADDR="$${BTC_ADDR}"
+          fi
           TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
           CONFS=$$(echo "$${TX}" | jq '.[].confirmations')
           if [ "$${CONFS}" = "0" ] || [ $$(date +%s) -gt $$DEFAULT_TIMEOUT ]; then
@@ -92,7 +99,7 @@ services:
             else
               echo "Detected Stacks mining mempool tx, mining btc block..."
             fi
-            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${BTC_ADDR}"
+            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${MINING_ADDR}"
             DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
           else
             echo "No Stacks mining tx detected"
