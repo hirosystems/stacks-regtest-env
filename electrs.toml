@@ -1,0 +1,7 @@
+network = "regtest"
+daemon_rpc_addr = "$BITCOIN_PEER_HOST:$BITCOIN_RPC_PORT"
+daemon_p2p_addr = "$BITCOIN_PEER_HOST:$BITCOIN_PEER_PORT"
+log_filters = "INFO"
+auth = "$BITCOIN_RPC_USER:$BITCOIN_RPC_PASS"
+electrum_rpc_addr = "0.0.0.0:$ELECTRUM_SERVER_PORT"
+index_lookup_limit = 100000
