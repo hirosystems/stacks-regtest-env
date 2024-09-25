@@ -132,7 +132,7 @@ amount = 1000000000000000
 # Account keys 1
 # secretKey = "0d2f965b472a82efd5a96e6513c8b9f7edc725d5c96c7d35d6c722cedeb80d1b01"
 
-# Stacker/signer
+# Stacker/Signer (signer-3)
 [[ustx_balance]]
 address = "ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0"
 amount = 10000000000000000
@@ -141,13 +141,13 @@ amount = 10000000000000000
 # stx_address: ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0
 # btc_address: mzxXgV6e4BZSsz8zVHm3TmqbECt7mbuErt
 
-# Stacker/Signer (also in Devnet)
+# Stacker/Signer (signer-2, also in Devnet)
 [[ustx_balance]]
 address = "ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5"
 amount = 10000000000000000
 # secretKey = 7287ba251d44a4d3fd9276c88ce34c5c52a038955511cccaf77e61068649c17801
 
-# Stacker/Signer (also in Devnet)
+# Stacker/Signer (signer-1, also in Devnet)
 [[ustx_balance]]
 address = "ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG"
 amount = 10000000000000000
@@ -159,7 +159,7 @@ address = "ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC"
 amount = 10000000000000000
 # secretKey = d655b2523bcd65e34889725c73064feb17ceb796831c0e111ba1a552b0f31b3901
 
-# Stacker/signer
+# Signer (signer-5)
 [[ustx_balance]]
 address = "STHJZMGZWCWHBZKDD90GCSN4KEFSTQX05NEJ2BDD"
 amount = 10000000000000000
@@ -180,6 +180,7 @@ amount = 1000000000000000
 # secretKey = 5b8303150239eceaba43892af7cdd1fa7fc26eda5182ebaaa568e3341d54a4d001
 
 # MORE DEVNET WALLETS
+# Signer (signer-4)
 [[ustx_balance]]
 address = "ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND"
 amount = 10000000000000000
