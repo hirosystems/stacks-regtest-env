@@ -195,3 +195,9 @@ amount = 10000000000000000
 address = "ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0"
 amount = 10000000000000000
 # secretKey = 7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01
+
+[[ustx_balance]]
+address = "STT8DSJTWAW9TVJ1B17SD3S6F7SYH4TXG7TWS7Q9"
+amount = 10000000000000000
+# privateKey = 16226f674796712dfbd53bf402304579b8b6d04d4bed4d466bf84ce6db973d4401
+# mnemonic = "essay grief twin tube concert idea prosper good alarm goddess shell glare hurt belt endless patch lumber wrap labor body erupt brown style test"

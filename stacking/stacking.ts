@@ -14,6 +14,7 @@ const randInt = () => crypto.randomInt(0, 0xffffffffffff);
 const stackingInterval = parseEnvInt('STACKING_INTERVAL', true);
 const postTxWait = parseEnvInt('POST_TX_WAIT', true);
 const stackingCycles = parseEnvInt('STACKING_CYCLES', true);
+const stackAmount = parseEnvInt('STACK_AMOUNT_STX', false);
 
 let startTxFee = 1000;
 const getNextTxFee = () => startTxFee++;
@@ -106,12 +107,16 @@ async function run() {
 }
 
 async function stackStx(poxInfo: PoxInfo, account: Account) {
-  // Bump min threshold by 25% to avoid getting stuck if threshold increases
-  const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.25);
-  const amountToStx = BigInt(minStx) * BigInt(account.targetSlots);
+  // Bump min threshold by 50% to avoid getting stuck if threshold increases
+  const minStx = Math.floor(poxInfo.next_cycle.min_threshold_ustx * 1.5);
+  let amountToStx = BigInt(minStx) * BigInt(account.targetSlots);
+  if (typeof stackAmount === 'number') {
+    amountToStx = BigInt(stackAmount) * 1_000_000n;
+  }
+
   if (amountToStx > account.balance) {
     throw new Error(
-      `Insufficient balance to stack-stx (amount=${amountToStx}, balance=${account.balance})`
+      `Insufficient balance to stack-stx (amount=${amountToStx}, balance=${account.info.balance})`
     );
   }
   const authId = randInt();

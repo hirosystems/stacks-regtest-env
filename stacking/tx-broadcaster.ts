@@ -104,7 +104,7 @@ async function loop() {
     try {
       await run();
     } catch (e) {
-      logger.error('Error submitting stx-transfer tx:', e);
+      logger.error(e, 'Error in tx-broadcaster loop');
     }
     await new Promise(resolve => setTimeout(resolve, broadcastInterval * 1000));
   }
