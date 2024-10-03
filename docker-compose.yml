@@ -164,7 +164,7 @@ services:
             fi
 
             # Check this Stacks miner's Bitcoin balance and top it up if it is low
-            BALANCE=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" getbalances | jq .watchonly.trusted)
+            BALANCE=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" getbalances | jq '.watchonly.trusted + .watchonly.untrusted_pending')
             BALANCE=$${BALANCE:-0}
 
             if (( $$(echo "$${BALANCE} < 0.1" | bc -l) )); then
