@@ -97,17 +97,16 @@ services:
           bitcoin-cli -rpcconnect=bitcoind -named createwallet wallet_name="main" descriptors=false load_on_startup=true
         fi
 
-        echo "Generate or use miner address"
-        # Generate or use a miner address
-        MINER_ADDRESS=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" getnewaddress "miner_address")
-        echo "Miner address: $${MINER_ADDRESS}"
+        # Generate a new or use an existing address for the Bitcoin miner
+        BITCOIN_MINER_ADDRESS=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" getnewaddress "btc_miner")
+        echo "Bitcoin miner address: $${BITCOIN_MINER_ADDRESS}"
 
         echo "Importing addresses and generating blocks"
         # Import the addresses from BITCOIN_ADDRESSES_ARRAY
         i=0
         for bitcoin_address in "$${BITCOIN_ADDRESSES_ARRAY[@]}"; do
           # Create a unique wallet name for each address
-          wallet_name="miner_$${i}"
+          wallet_name="stx_miner_$${i}"
 
           # Check if the wallet already exists
           if ! bitcoin-cli -rpcconnect=bitcoind listwallets | grep -q "$${wallet_name}"; then
@@ -136,8 +135,8 @@ services:
           i=$$((i + 1))
         done
 
-        # Generate the initial blocks to fund the miner address
-        bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" -named generatetoaddress nblocks=$${INIT_BLOCKS} address="$${MINER_ADDRESS}"
+        # Generate the initial blocks to fund the Bitcoin miner address
+        bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" -named generatetoaddress nblocks=$${INIT_BLOCKS} address="$${BITCOIN_MINER_ADDRESS}"
 
         DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
         while true; do
@@ -145,7 +144,7 @@ services:
 
           i=0
           for bitcoin_address in "$${BITCOIN_ADDRESSES_ARRAY[@]}"; do
-            wallet_name="miner_$${i}"
+            wallet_name="stx_miner_$${i}"
 
             # Get the most recent transaction for the wallet
             TX=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" -named listtransactions label='*' count=1 include_watchonly=true)
@@ -159,10 +158,26 @@ services:
               if [ "$${CONFS}" = "0" ]; then
                 echo "Detected unconfirmed transaction in wallet $${wallet_name} (address $${bitcoin_address})"
                 TX_FOUND=true
-                break  # Exit the loop since we found an unconfirmed transaction
               fi
             else
               echo "No transactions found in wallet $${wallet_name}"
+            fi
+
+            # Check this Stacks miner's Bitcoin balance and top it up if it is low
+            BALANCE=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" getbalances | jq .watchonly.trusted)
+            BALANCE=$${BALANCE:-0}
+
+            if (( $$(echo "$${BALANCE} < 0.1" | bc -l) )); then
+              echo "Balance of $${bitcoin_address} is low ($${BALANCE} BTC), sending 1 BTC from miner $${BITCOIN_MINER_ADDRESS}."
+
+              # Send 1 BTC from BITCOIN_MINER_ADDRESS wallet to bitcoin_address
+              TXID=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" -named sendtoaddress \
+                address="$${bitcoin_address}" \
+                amount=1.0 \
+                subtractfeefromamount=true \
+                fee_rate=1)
+
+              echo "Transaction ID: $${TXID}"
             fi
 
             i=$$((i + 1))
@@ -175,7 +190,7 @@ services:
             else
               echo "Detected Stacks mining mempool tx, mining btc block..."
             fi
-            bitcoin-cli -rpcconnect=bitcoind -named -rpcwallet="main" -named generatetoaddress nblocks=1 address="$${MINER_ADDRESS}"
+            bitcoin-cli -rpcconnect=bitcoind -named -rpcwallet="main" -named generatetoaddress nblocks=1 address="$${BITCOIN_MINER_ADDRESS}"
             DEFAULT_TIMEOUT=$(($(date +%s) + 30))
           else
             echo "No Stacks mining tx detected"
@@ -192,33 +207,6 @@ services:
           fi
           sleep $${SLEEP_DURATION} &
           wait || exit 0
-
-          # Check balances of BITCOIN_ADDRESSES_ARRAY and send funds if necessary
-          i=0
-          for bitcoin_address in "$${BITCOIN_ADDRESSES_ARRAY[@]}"; do
-            # Construct the wallet name for the current address
-            wallet_name="miner_$${i}"
-
-            # Check balance in the specific wallet containing bitcoin_address
-            BALANCE=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" getbalances | jq .watchonly.trusted)
-            BALANCE=$${BALANCE:-0}
-
-            if (( $$(echo "$${BALANCE} < 0.1" | bc -l) )); then
-              echo "Balance of $${bitcoin_address} is low ($${BALANCE} BTC), sending 1 BTC from miner $${MINER_ADDRESS}."
-
-              # Send 1 BTC from MINER_ADDRESS wallet to bitcoin_address
-              TXID=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" -named sendtoaddress \
-                address="$${bitcoin_address}" \
-                amount=1.0 \
-                subtractfeefromamount=true \
-                fee_rate=1)
-
-              echo "Transaction ID: $${TXID}"
-            fi
-
-            # Increment the counter for the next wallet
-            i=$$((i + 1))
-          done
         done
 
   stacks-node:
