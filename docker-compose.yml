@@ -1,9 +1,9 @@
 version: "3.9"
 
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT 5321154f30c2387ed52e0f82ffd9476fe963cc84 # develop, Aug 15, 11:30
+  - &STACKS_BLOCKCHAIN_COMMIT a4597f5626217a6198dd9925bb1296f3bb576eeb # develop, Oct 2, 22:30
   - &STACKS_API_COMMIT f6e50f6d28f292d79dbebd70b2b00831c95997f6 # 7.13.2
-  - &BTC_ADDR miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
+  - &BITCOIN_ADDRESSES miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
   - &BITCOIN_RPC_PORT 18443
@@ -64,7 +64,7 @@ services:
     volumes:
       - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
     environment:
-      BTC_ADDR: *BTC_ADDR
+      BITCOIN_ADDRESSES: *BITCOIN_ADDRESSES
       MINE_INTERVAL: *MINE_INTERVAL
       MINE_INTERVAL_EPOCH3: *MINE_INTERVAL_EPOCH3
       MINE_INTERVAL_EPOCH25: *MINE_INTERVAL_EPOCH25
@@ -78,22 +78,120 @@ services:
         set -e
         trap "exit" INT TERM
         trap "kill 0" EXIT
-        bitcoin-cli -rpcconnect=bitcoind -rpcwait getmininginfo
-        bitcoin-cli -rpcconnect=bitcoind -named createwallet wallet_name=main descriptors=false
-        bitcoin-cli -rpcconnect=bitcoind importaddress $${BTC_ADDR} "" false
-        bitcoin-cli -rpcconnect=bitcoind generatetoaddress $${INIT_BLOCKS} $${BTC_ADDR}
+
+        OLD_IFS="$${IFS}"
+        IFS=','
+        read -ra BITCOIN_ADDRESSES_ARRAY <<< "$${BITCOIN_ADDRESSES}"
+        IFS="$${OLD_IFS}"
+
+        # Install dependencies
+        apt update && apt install -y jq bc
+
+        # Wait for bitcoin-core container to start
+        sleep 5
+
+        echo "Checking if the main wallet exists"
+        if ! bitcoin-cli -rpcconnect=bitcoind listwallets | grep -q "main"; then
+          echo "Generating wallet and initial set of blocks"
+          bitcoin-cli -rpcconnect=bitcoind -rpcwait getmininginfo
+          bitcoin-cli -rpcconnect=bitcoind -named createwallet wallet_name="main" descriptors=false load_on_startup=true
+        fi
+
+        # Generate a new or use an existing address for the Bitcoin miner
+        BITCOIN_MINER_ADDRESS=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" getnewaddress "btc_miner")
+        echo "Bitcoin miner address: $${BITCOIN_MINER_ADDRESS}"
+
+        echo "Importing addresses and generating blocks"
+        # Import the addresses from BITCOIN_ADDRESSES_ARRAY
+        i=0
+        for bitcoin_address in "$${BITCOIN_ADDRESSES_ARRAY[@]}"; do
+          # Create a unique wallet name for each address
+          wallet_name="stx_miner_$${i}"
+
+          # Check if the wallet already exists
+          if ! bitcoin-cli -rpcconnect=bitcoind listwallets | grep -q "$${wallet_name}"; then
+            # Create a new wallet with the unique name
+            bitcoin-cli -rpcconnect=bitcoind -named createwallet wallet_name="$${wallet_name}" descriptors=false load_on_startup=true
+            echo "Wallet $${wallet_name} created."
+          else
+            echo "Wallet $${wallet_name} already exists."
+          fi
+
+          echo "Importing $${bitcoin_address} into wallet $${wallet_name}"
+
+          # Import the address into the newly created wallet
+          bitcoin-cli \
+            -rpcconnect=bitcoind \
+            -rpcwallet="$${wallet_name}" \
+            -named importaddress \
+            address="$${bitcoin_address}" \
+            rescan=false \
+            label="user_addresses"
+
+          # Generate 1 block to fund the address
+          bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" -named generatetoaddress nblocks=1 address="$${bitcoin_address}"
+
+          # Increment the counter
+          i=$$((i + 1))
+        done
+
+        # Generate the initial blocks to fund the Bitcoin miner address
+        bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" -named generatetoaddress nblocks=$${INIT_BLOCKS} address="$${BITCOIN_MINER_ADDRESS}"
+
         DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
         while true; do
-          TX=$$(bitcoin-cli -rpcconnect=bitcoind listtransactions '*' 1 0 true)
-          CONFS=$$(echo "$${TX}" | jq '.[].confirmations')
-          if [ "$${CONFS}" = "0" ] || [ $$(date +%s) -gt $$DEFAULT_TIMEOUT ]; then
-            if [ $$(date +%s) -gt $$DEFAULT_TIMEOUT ]; then
+          TX_FOUND=false
+
+          i=0
+          for bitcoin_address in "$${BITCOIN_ADDRESSES_ARRAY[@]}"; do
+            wallet_name="stx_miner_$${i}"
+
+            # Get the most recent transaction for the wallet
+            TX=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" -named listtransactions label='*' count=1 include_watchonly=true)
+
+            # Check if there is a transaction
+            if [ "$${TX}" != "[]" ]; then
+              # Extract the confirmations
+              CONFS=$$(echo "$${TX}" | jq '.[0].confirmations')
+
+              # Check if there is a transaction with 0 confirmations
+              if [ "$${CONFS}" = "0" ]; then
+                echo "Detected unconfirmed transaction in wallet $${wallet_name} (address $${bitcoin_address})"
+                TX_FOUND=true
+              fi
+            else
+              echo "No transactions found in wallet $${wallet_name}"
+            fi
+
+            # Check this Stacks miner's Bitcoin balance and top it up if it is low
+            BALANCE=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="$${wallet_name}" getbalances | jq '.watchonly.trusted + .watchonly.untrusted_pending')
+            BALANCE=$${BALANCE:-0}
+
+            if (( $$(echo "$${BALANCE} < 0.1" | bc -l) )); then
+              echo "Balance of $${bitcoin_address} is low ($${BALANCE} BTC), sending 1 BTC from miner $${BITCOIN_MINER_ADDRESS}."
+
+              # Send 1 BTC from BITCOIN_MINER_ADDRESS wallet to bitcoin_address
+              TXID=$$(bitcoin-cli -rpcconnect=bitcoind -rpcwallet="main" -named sendtoaddress \
+                address="$${bitcoin_address}" \
+                amount=1.0 \
+                subtractfeefromamount=true \
+                fee_rate=1)
+
+              echo "Transaction ID: $${TXID}"
+            fi
+
+            i=$$((i + 1))
+          done
+
+          # Check if any unconfirmed transactions were found or if the timeout has been reached
+          if [ "$${TX_FOUND}" = true ] || [ $$(date +%s) -gt $${DEFAULT_TIMEOUT} ]; then
+            if [ $$(date +%s) -gt $${DEFAULT_TIMEOUT} ]; then
               echo "Timed out waiting for a mempool tx, mining a btc block..."
             else
               echo "Detected Stacks mining mempool tx, mining btc block..."
             fi
-            bitcoin-cli -rpcconnect=bitcoind generatetoaddress 1 "$${BTC_ADDR}"
-            DEFAULT_TIMEOUT=$$(($$(date +%s) + 30))
+            bitcoin-cli -rpcconnect=bitcoind -named -rpcwallet="main" -named generatetoaddress nblocks=1 address="$${BITCOIN_MINER_ADDRESS}"
+            DEFAULT_TIMEOUT=$(($(date +%s) + 30))
           else
             echo "No Stacks mining tx detected"
           fi
