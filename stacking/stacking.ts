@@ -112,7 +112,7 @@ async function stackStx(poxInfo: PoxInfo, account: Account, balance: bigint) {
   if (typeof stackAmount === 'number') {
     amountToStx = BigInt(stackAmount) * 1_000_000n;
   }
-  
+
   if (amountToStx > balance) {
     throw new Error(
       `Insufficient balance to stack-stx (amount=${amountToStx}, balance=${balance})`

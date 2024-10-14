@@ -15,6 +15,7 @@ import {
   AccountsApi,
 } from '@stacks/blockchain-api-client';
 import pino, { Logger } from 'pino';
+import { ChainID } from '@stacks/common';
 
 const serviceName = process.env.SERVICE_NAME || 'JS';
 export let logger: Logger;
@@ -37,8 +38,11 @@ if (process.env.STACKS_LOG_JSON === '1') {
   });
 }
 
+export const CHAIN_ID = parseEnvInt('CHAIN_ID', false) ?? ChainID.Testnet;
+
 export const nodeUrl = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 export const network = new StacksTestnet({ url: nodeUrl });
+network.chainId = CHAIN_ID;
 const apiConfig = new Configuration({
   basePath: nodeUrl,
 });
