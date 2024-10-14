@@ -141,10 +141,11 @@ async function stackStx(poxInfo: PoxInfo, account: Account, balance: bigint) {
     authId,
     maxAmount,
   };
+  const { signerPrivateKey, ...restSigArgs } = sigArgs;
   account.logger.debug(
     {
       ...stackingArgs,
-      ...sigArgs,
+      ...restSigArgs,
     },
     `Stack-stx with args:`
   );
@@ -179,12 +180,13 @@ async function stackExtend(poxInfo: PoxInfo, account: Account) {
     authId,
     maxAmount,
   };
+  const { signerPrivateKey, ...restSigArgs } = sigArgs;
   account.logger.debug(
     {
       stxAddress: account.stxAddress,
       account: account.index,
       ...stackingArgs,
-      ...sigArgs,
+      ...restSigArgs,
     },
     `Stack-extend with args:`
   );
