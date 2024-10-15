@@ -8,11 +8,12 @@ import {
   broadcastTransaction,
   StacksTransaction,
 } from '@stacks/transactions';
-import { logger } from './common';
+import { logger, CHAIN_ID } from './common';
 
 const broadcastInterval = parseInt(process.env.NAKAMOTO_BLOCK_INTERVAL ?? '2');
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
 const network = new StacksTestnet({ url });
+network.chainId = CHAIN_ID;
 const EPOCH_30_START = parseInt(process.env.STACKS_30_HEIGHT ?? '0');
 
 const accounts = process.env.ACCOUNT_KEYS!.split(',').map(privKey => ({
