@@ -34,6 +34,7 @@ chain = "bitcoin"
 mode = "krypton"
 poll_time_secs = 1
 pox_2_activation = $STACKS_POX2_HEIGHT
+chain_id = $STACKS_CHAIN_ID
 
 ### bitcoind-regtest connection info
 peer_host = "$BITCOIN_PEER_HOST"
