@@ -1,8 +1,7 @@
-version: "3.9"
-
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT e2bd98230483a3ee18d03cbfccfc795dbdcb2004 # develop, Oct 14, 12:20 PST
-  - &STACKS_API_COMMIT f6e50f6d28f292d79dbebd70b2b00831c95997f6 # 7.13.2
+  - &STACKS_BLOCKCHAIN_COMMIT 607e3f115f811fb5d012ad03f19f6980f9ca8bea # develop, Oct 14, 12:20 PST
+  - &STACKS_API_COMMIT 65d5422c8458c127b6629b44a4ccfe2d6306301c # 7.13.2
+  - &CHAINHOOK_COMMIT f48cda533dfc58bb630737fb29cf1bc9c966a638 # develop, Oct 22
   - &BITCOIN_ADDRESSES miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
@@ -476,6 +475,47 @@ services:
         set -e
         envsubst < config.toml.in > config.toml
         exec stacks-signer run --config config.toml
+
+  redis:
+    networks:
+      - stacks
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+
+  chainhook:
+    networks:
+      - stacks
+    build:
+      context: .
+      dockerfile: Dockerfile.chainhook
+      args:
+        GIT_COMMIT: *CHAINHOOK_COMMIT
+    depends_on:
+      - bitcoind
+      - redis
+    ports:
+      - "20456:20456"
+      - "20455:20455"
+    volumes:
+      - ./chainhook.toml/:/root/chainhook.toml.in
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+    environment:
+      BITCOIN_PEER_HOST: bitcoind
+      BITCOIN_RPC_PORT: *BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: *BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: *BITCOIN_RPC_PASS
+      STACKS_NODE_HOST: stacks-node:20443
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        envsubst < chainhook.toml.in > chainhook.toml
+        echo "Waiting for bitcoind to be ready..."
+        bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
+        echo "Starting Chainhook with config: $$(cat chainhook.toml)"
+        exec chainhook service start --config-path=chainhook.toml
 
 networks:
   stacks:

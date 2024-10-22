@@ -37,11 +37,6 @@ disable_inbound_walks = true
 public_ip_address = "1.1.1.1:1234"
 auth_token = "12345"
 
-# Add stacks-api as an event observer
-[[events_observer]]
-endpoint = "stacks-api:3700"
-events_keys = ["*"]
-
 # Add stacks-signer as an event observer
 [[events_observer]]
 endpoint = "stacks-signer-1:30001"
@@ -54,6 +49,18 @@ events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
 [[events_observer]]
 endpoint = "stacks-signer-3:30003"
 events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
+
+# Add stacks-api as an event observer
+[[events_observer]]
+endpoint = "stacks-api:3700"
+events_keys = ["*"]
+timeout_ms = 300_000
+
+# Add chainhook as an event observer
+[[events_observer]]
+endpoint = "chainhook:20455"
+events_keys = ["*"]
+timeout_ms = 300_000
 
 [burnchain]
 chain = "bitcoin"
