@@ -15,8 +15,9 @@ const stackingInterval = parseEnvInt('STACKING_INTERVAL', true);
 const postTxWait = parseEnvInt('POST_TX_WAIT', true);
 const stackingCycles = parseEnvInt('STACKING_CYCLES', true);
 const stackAmount = parseEnvInt('STACK_AMOUNT_STX', false);
+const stackingFee = parseEnvInt('STACKING_FEE', false) ?? 1000000;
 
-let startTxFee = 1000;
+let startTxFee = stackingFee;
 const getNextTxFee = () => startTxFee++;
 
 async function run() {
