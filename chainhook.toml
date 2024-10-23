@@ -10,7 +10,7 @@ http_port = 20456
 database_uri = "redis://redis:6379/"
 
 [network]
-mode = "devnet"
+mode = "testnet"
 bitcoind_rpc_url = "http://$BITCOIN_PEER_HOST:$BITCOIN_RPC_PORT"
 bitcoind_rpc_username = "$BITCOIN_RPC_USER"
 bitcoind_rpc_password = "$BITCOIN_RPC_PASS"
