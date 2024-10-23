@@ -1,7 +1,7 @@
 x-common-vars:
-  - &STACKS_BLOCKCHAIN_COMMIT 607e3f115f811fb5d012ad03f19f6980f9ca8bea # develop, Oct 14, 12:20 PST
-  - &STACKS_API_COMMIT 65d5422c8458c127b6629b44a4ccfe2d6306301c # 7.13.2
-  - &CHAINHOOK_COMMIT f48cda533dfc58bb630737fb29cf1bc9c966a638 # develop, Oct 22
+  - &STACKS_BLOCKCHAIN_COMMIT dd1ebe64603f54dae48558a5d82d9bd885e97a01 # develop, Oct 23
+  - &STACKS_API_COMMIT 37939a0ffb8375285c7a0be7a688112d6536d3c3 # develop, Oct 23
+  - &CHAINHOOK_COMMIT 21234c978d4c49ea5526c2cf1f74d42a645a68c8 # develop, Oct 23
   - &BITCOIN_ADDRESSES miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT
   - &MINER_SEED 9e446f6b0c6a96cf2190e54bcd5a8569c3e386f091605499464389b8d4e0bfc201 # stx: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19, btc: miEJtNKa3ASpA19v5ZhvbKTEieYjLpzCYT, pub_key: 035379aa40c02890d253cfa577964116eb5295570ae9f7287cbae5f2585f5b2c7c, wif: cStMQXkK5yTFGP3KbNXYQ3sJf2qwQiKrZwR9QJnksp32eKzef1za
   - &BITCOIN_PEER_PORT 18444
@@ -264,7 +264,7 @@ services:
         mkdir -p $${DATA_DIR}
         rm -rf $${DATA_DIR}/*
         envsubst < config.toml.in > config.toml
-        echo "Starting Stacks with config: $(cat config.toml)"
+        echo "Starting Stacks with config: $$(cat config.toml)"
         bitcoin-cli -rpcwait -rpcconnect=bitcoind getmininginfo
         exec stacks-node start --config config.toml
 

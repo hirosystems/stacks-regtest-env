@@ -7,7 +7,6 @@ RUN echo "Building chainhook from commit: https://github.com/hirosystems/chainho
 
 RUN apt-get update && apt-get install -y libclang-dev
 RUN rustup toolchain install stable
-# RUN rustup component add rustfmt --toolchain stable
 
 WORKDIR /chainhook
 RUN git init && \
