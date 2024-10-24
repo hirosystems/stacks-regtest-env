@@ -23,6 +23,7 @@ if (process.env.STACKS_LOG_JSON === '1') {
   logger = pino({
     level: process.env.LOG_LEVEL || 'info',
     name: serviceName,
+    formatters: { level: (label) => { return { level: label } } }
   });
 } else {
   logger = pino({
