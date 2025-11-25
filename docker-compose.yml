@@ -30,9 +30,7 @@ x-common-vars:
   - &POX_REWARD_LENGTH ${POX_REWARD_LENGTH:-20}
   - &REWARD_RECIPIENT ${REWARD_RECIPIENT:-STQM73RQC4EX0A07KWG1J5ECZJYBZS4SJ4ERC6WN} # priv: 6ad9cadb42d4edbfbe0c5bfb3b8a4125ddced021c4174f829b714ccbf527f02001
   - &EXIT_FROM_MONITOR 1 # set to "1" to automatically shut down via monitor.ts
-  # Choose one to override the default
-  - &STACKS_CHAIN_ID ${STACKS_CHAIN_ID:-0x80000000}
-  # - &STACKS_CHAIN_ID ${STACKS_CHAIN_ID:-0x80000100}
+  - &STACKS_CHAIN_ID ${STACKS_CHAIN_ID:-0x80000100}
   - &CUSTOM_CHAIN_IDS ${CUSTOM_CHAIN_IDS:-testnet=0x55005500,mainnet=12345678,mainnet=0xdeadbeaf,testnet=0x80000100}
 
 services:
@@ -218,7 +216,8 @@ services:
 
   stacks-node:
     networks:
-      - stacks
+      stacks:
+        ipv4_address: 10.0.0.20
     build:
       context: .
       dockerfile: Dockerfile.stacks-node
@@ -485,5 +484,8 @@ services:
 
 networks:
   stacks:
+    ipam:
+      config:
+        - subnet: "10.0.0.0/24"
 volumes:
   chainstate:

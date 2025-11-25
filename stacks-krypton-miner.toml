@@ -31,10 +31,11 @@ $REWARD_RECIPIENT_CONF
 # inv_sync_interval = 10
 # download_interval = 10
 # walk_interval = 10
-disable_block_download = true
+disable_block_download = false
 disable_inbound_handshakes = false
 disable_inbound_walks = false
-public_ip_address = "1.1.1.1:1234"
+public_ip_address = "10.0.0.20:20444"
+private_neighbors = true
 auth_token = "12345"
 
 # Add stacks-api as an event observer
