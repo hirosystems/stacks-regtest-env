@@ -18,6 +18,10 @@ mine_microblocks = false
 microblock_frequency = 1000
 # mine_microblocks = true
 # max_microblocks = 10
+pox_5_sbtc_contract = "$SBTC_DEPLOYER_ADDRESS.sbtc-token"
+pox_5_sbtc_registry_contract = "$SBTC_DEPLOYER_ADDRESS.sbtc-registry"
+# Shared bond admin account
+pox_5_bond_admin = "ST1V2ASRWGR81W7GBN1Z4W2JQKXJWCADPVZG30X45"
 
 [miner]
 first_attempt_time_ms = 180_000
@@ -36,6 +40,7 @@ disable_inbound_handshakes = false
 disable_inbound_walks = false
 public_ip_address = "1.1.1.1:1234"
 auth_token = "12345"
+read_only_call_limit_read_length = 10000000000
 
 # Add stacks-api as an event observer
 [[events_observer]]
@@ -54,6 +59,34 @@ events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
 [[events_observer]]
 endpoint = "stacks-signer-3:30003"
 events_keys = ["stackerdb", "block_proposal", "burn_blocks"]
+
+[[events_observer]]
+endpoint = "emily-sidecar:20540"
+events_keys = [
+  "$SBTC_DEPLOYER_ADDRESS.sbtc-registry::print",
+]
+timeout_ms = 10_000
+
+[[events_observer]]
+endpoint = "sbtc-signer-1:8801"
+events_keys = [
+  "$SBTC_DEPLOYER_ADDRESS.sbtc-registry::print",
+]
+timeout_ms = 10_000
+
+[[events_observer]]
+endpoint = "sbtc-signer-2:8801"
+events_keys = [
+  "$SBTC_DEPLOYER_ADDRESS.sbtc-registry::print",
+]
+timeout_ms = 10_000
+
+[[events_observer]]
+endpoint = "sbtc-signer-3:8801"
+events_keys = [
+  "$SBTC_DEPLOYER_ADDRESS.sbtc-registry::print",
+]
+timeout_ms = 10_000
 
 [burnchain]
 chain = "bitcoin"
@@ -121,6 +154,14 @@ start_height = $STACKS_32_HEIGHT
 [[burnchain.epochs]]
 epoch_name = "3.3"
 start_height = $STACKS_33_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "3.4"
+start_height = $STACKS_34_HEIGHT
+
+[[burnchain.epochs]]
+epoch_name = "4.0"
+start_height = $STACKS_40_HEIGHT
 
 
 [[ustx_balance]]
@@ -194,3 +235,12 @@ address = "STT8DSJTWAW9TVJ1B17SD3S6F7SYH4TXG7TWS7Q9"
 amount = 10000000000000000
 # privateKey = 16226f674796712dfbd53bf402304579b8b6d04d4bed4d466bf84ce6db973d4401
 # mnemonic = "essay grief twin tube concert idea prosper good alarm goddess shell glare hurt belt endless patch lumber wrap labor body erupt brown style test"
+
+[[ustx_balance]]
+address = "ST1V2ASRWGR81W7GBN1Z4W2JQKXJWCADPVZG30X45"
+amount = 10000000000000000
+
+# sBTC deployer account
+[[ustx_balance]]
+address = "$SBTC_DEPLOYER_ADDRESS"
+amount = 10000000000000000

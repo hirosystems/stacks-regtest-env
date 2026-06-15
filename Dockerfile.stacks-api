@@ -12,7 +12,7 @@ RUN git init && \
     git reset --hard FETCH_HEAD && \
     git fetch --all --tags
 
-RUN rm ".env"
+# RUN rm ".env"
 RUN git describe --tags --abbrev=0 || git -c user.name='user' -c user.email='email' tag vNext
 RUN echo "GIT_TAG=$(git tag --points-at HEAD)" >> .env
 

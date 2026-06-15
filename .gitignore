@@ -1,2 +1,5 @@
 stacking/node_modules
 package-lock.json
+.cache
+node_modules
+ai

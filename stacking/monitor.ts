@@ -1,15 +1,15 @@
+import { bitcoinRPC } from './btc-helpers.js';
 import {
   accounts,
   nodeUrl,
   waitForSetup,
   EPOCH_30_START,
   didCrossPreparePhase,
-  blocksApi,
   parseEnvInt,
-  txApi,
   logger,
-} from './common';
-import { Transaction, ContractCallTransaction } from '@stacks/stacks-blockchain-api-types';
+  WALLET_NAME,
+  apiClient,
+} from './common.js';
 
 let lastBurnHeight = 0;
 let lastStxHeight = 0;
@@ -25,24 +25,49 @@ const monitorInterval = parseEnvInt('MONITOR_INTERVAL') ?? 2;
 
 logger.debug('Exit from monitor?', EXIT_FROM_MONITOR);
 
-async function getTransactions(): Promise<ContractCallTransaction[]> {
-  let res = await txApi.getTransactionsByBlock({
-    heightOrHash: 'latest',
+async function getTransactions() {
+  const { data } = await apiClient.GET('/extended/v2/blocks/{height_or_hash}/transactions', {
+    params: {
+      path: {
+        height_or_hash: 'latest',
+      },
+    },
   });
-  let txs = res.results as Transaction[];
-  return txs.filter(tx => {
+  if (!data) {
+    return [];
+  }
+  return data.results.filter(tx => {
     return tx.tx_type === 'contract_call';
-  }) as ContractCallTransaction[];
+  });
+}
+
+async function getBtcStakerBalance() {
+  const balance = await bitcoinRPC('getbalance', [], WALLET_NAME);
+  return balance;
+}
+
+async function getLatestBlock() {
+  try {
+    const { data } = await apiClient.GET('/extended/v2/blocks/{height_or_hash}', {
+      params: {
+        path: {
+          height_or_hash: 'latest',
+        },
+      },
+    });
+    return data;
+  } catch (error) {
+    return null;
+  }
 }
 
 async function getInfo() {
-  let { client } = accounts[0];
-  const [poxInfo, blockInfo, txs] = await Promise.all([
+  let { client } = accounts[0]!;
+  const [poxInfo, blockInfo, txs, btcStakerBalance] = await Promise.all([
     client.getPoxInfo(),
-    blocksApi.getBlock({
-      heightOrHash: 'latest',
-    }),
+    getLatestBlock(),
     getTransactions(),
+    getBtcStakerBalance(),
   ]);
   const { reward_cycle_id } = poxInfo;
   return {
@@ -50,6 +75,7 @@ async function getInfo() {
     blockInfo,
     nextCycleId: reward_cycle_id + 1,
     txs,
+    btcStakerBalance,
   };
 }
 
@@ -79,22 +105,23 @@ async function loop() {
   try {
     const { poxInfo, blockInfo, ...info } = await getInfo();
     let { reward_cycle_id, current_burnchain_block_height } = poxInfo;
-    let { height } = blockInfo;
+    const height = blockInfo?.height ?? 0;
     let showBurnMsg = false;
     let showPrepareMsg = false;
     let showCycleMsg = false;
     let showStxBlockMsg = false;
-    let burnHeightDate = new Date(blockInfo.burn_block_time * 1000);
-    let burnHeightTimeAgo = (new Date().getTime() - burnHeightDate.getTime()) / 1000;
+    const burnBlockTimeMs = (blockInfo?.burn_block_time ?? 0) * 1000;
+    const burnHeightTimeAgo = (Date.now() - burnBlockTimeMs) / 1000;
     const loopLog = logger.child({
       height,
       burnHeight: current_burnchain_block_height,
       // burnHeightTime:
       cycle: reward_cycle_id,
-      txCount: blockInfo.tx_count,
+      txCount: blockInfo?.tx_count,
       rewardCycle: reward_cycle_id,
       lastBurnBlock: `${burnHeightTimeAgo.toFixed(0)}s ago`,
-      burnHash: blockInfo.burn_block_hash,
+      burnHash: blockInfo?.burn_block_hash,
+      btcStakerBalance: info.btcStakerBalance,
     });
 
     if (current_burnchain_block_height && current_burnchain_block_height !== lastBurnHeight) {
@@ -145,6 +172,7 @@ async function loop() {
       if (current_burnchain_block_height === EPOCH_30_START) {
         loopLog.info('Starting Nakamoto');
       }
+      // loopLog.info({ poxInfo });
     }
     if (showPrepareMsg) {
       loopLog.info(
@@ -166,7 +194,7 @@ async function loop() {
       }
     }
 
-    if (!showBurnMsg && showStxBlockMsg && blockInfo.burn_block_height >= EPOCH_30_START) {
+    if (!showBurnMsg && showStxBlockMsg && (blockInfo?.burn_block_height ?? 0) >= EPOCH_30_START) {
       loopLog.info({ lastStxBlockDiff: lastStxBlockDiff / 1000 }, 'Nakamoto block');
     }
     if (showStxBlockMsg && info.txs.length > 0) {

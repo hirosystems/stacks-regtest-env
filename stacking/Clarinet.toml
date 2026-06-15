@@ -1,0 +1,25 @@
+
+[project]
+name = "core-contracts"
+
+[[project.requirements]]
+contract_id = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-withdrawal"
+
+[repl]
+costs_version = 1
+
+[contracts.pox-5]
+path = "./contracts/pox-5.clar"
+clarity_version = 6
+epoch = 4.0
+
+[contracts.pox-5-signer]
+path = "./contracts/pox-5-signer.clar"
+clarity_version = 6
+epoch = 4.0
+
+[repl.analysis.lints]
+unused_const = "warn"
+unused_data_var = "warn"
+panic = "off"
+case_fn = "off"

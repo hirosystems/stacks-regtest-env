@@ -1,40 +1,42 @@
-import { StacksTestnet } from '@stacks/network';
 import { StackingClient } from '@stacks/stacking';
 import {
-  TransactionVersion,
   getAddressFromPrivateKey,
-  getNonce,
   makeSTXTokenTransfer,
   broadcastTransaction,
-  StacksTransaction,
+  StacksTransactionWire,
+  fetchNonce
 } from '@stacks/transactions';
-import { logger, CHAIN_ID } from './common';
+import { logger, network } from './common.js';
 
 const broadcastInterval = parseInt(process.env.NAKAMOTO_BLOCK_INTERVAL ?? '2');
 const url = `http://${process.env.STACKS_CORE_RPC_HOST}:${process.env.STACKS_CORE_RPC_PORT}`;
-const network = new StacksTestnet({ url });
-network.chainId = CHAIN_ID;
 const EPOCH_30_START = parseInt(process.env.STACKS_30_HEIGHT ?? '0');
 
 const accounts = process.env.ACCOUNT_KEYS!.split(',').map(privKey => ({
   privKey,
-  stxAddress: getAddressFromPrivateKey(privKey, TransactionVersion.Testnet),
+  stxAddress: getAddressFromPrivateKey(privKey, network),
 }));
 
-const client = new StackingClient(accounts[0].stxAddress, network);
+const client = new StackingClient({
+  address: accounts[0]!.stxAddress,
+  network,
+});
 
 async function run() {
   const accountNonces = await Promise.all(
     accounts.map(async account => {
-      const nonce = await getNonce(account.stxAddress, network);
+      const nonce = await fetchNonce({
+        address: account.stxAddress,
+        network,
+      });
       return { ...account, nonce };
     })
   );
 
   // Send from account with lowest nonce
   accountNonces.sort((a, b) => Number(a.nonce) - Number(b.nonce));
-  const sender = accountNonces[0];
-  const recipient = accountNonces[1];
+  const sender = accountNonces[0]!;
+  const recipient = accountNonces[1]!;
 
   logger.info(
     `Sending stx-transfer from ${sender.stxAddress} (nonce=${sender.nonce}) to ${recipient.stxAddress}`
@@ -47,16 +49,18 @@ async function run() {
     network,
     nonce: sender.nonce,
     fee: 300,
-    anchorMode: 'any',
   });
   await broadcast(tx, sender.stxAddress);
 }
 
-async function broadcast(tx: StacksTransaction, sender?: string) {
+async function broadcast(tx: StacksTransactionWire, sender?: string) {
   const txType = tx.payload.payloadType;
   const label = sender ? accountLabel(sender) : 'Unknown';
-  const broadcastResult = await broadcastTransaction(tx, network);
-  if (broadcastResult.error) {
+  const broadcastResult = await broadcastTransaction({
+    transaction: tx,
+    network,
+  });
+  if ('error' in broadcastResult) {
     logger.error({ ...broadcastResult, account: label }, `Error broadcasting ${txType}`);
     return false;
   } else {
@@ -81,7 +85,7 @@ async function waitForNakamoto() {
         break;
       }
     } catch (error) {
-      if (/(ECONNREFUSED|ENOTFOUND|SyntaxError)/.test(error.cause?.message)) {
+      if (error instanceof Error && 'cause' in error && error.cause instanceof Error && /(ECONNREFUSED|ENOTFOUND|SyntaxError)/.test(error.cause.message)) {
         logger.info(`Stacks node not ready, waiting...`);
       } else {
         logger.error('Error getting pox info:', error);

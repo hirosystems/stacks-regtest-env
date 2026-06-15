@@ -1,0 +1,315 @@
+# !! ==============================================================================
+# !! Blocklist Client Configuration
+# !! ==============================================================================
+# You may specify a blocklist client url. If one is not specified, then
+# deposit or withdrawal requests are always accepted.
+#
+# Format: "http(s)://<host>:<port>"
+# Default: <none>
+# Required: false
+# Environment: SIGNER_BLOCKLIST_CLIENT__ENDPOINT
+# [blocklist_client]
+# endpoint = "http://127.0.0.1:8080"
+
+# The delay, in milliseconds, for the retry after a blocklist client failure
+#
+# Required: false
+# Environment: SIGNER_BLOCKLIST_CLIENT__RETRY_DELAY
+# retry_delay = 1000
+
+# !! ==============================================================================
+# !! Emily API Configuration
+# !! ==============================================================================
+[emily]
+# The URI(s) of the Emily API server to connect to.
+#
+# You may specify multiple Emily API servers if you have them. They will be
+# tried round-robin until one succeeds.
+#
+# Format: ["http(s)://[api-key@]<host>:<port>", ..]
+# Default: <none>
+# Required: true
+# Environment: SIGNER_EMILY__ENDPOINTS
+# Environment Example: '"https://1234567890abcdef@api.emilyexample.com",..'
+endpoints = [
+    "http://testApiKey@emily-server:3031",
+]
+
+# The pagination timeout, in seconds, used to fetch deposits requests from Emily.
+# Required: false
+# Environment: SIGNER_EMILY__PAGINATION_TIMEOUT
+# pagination_timeout = 10
+
+# !! ==============================================================================
+# !! Bitcoin Core Configuration
+# !! ==============================================================================
+[bitcoin]
+# The URI(s) of the Bitcoin Core RPC server(s) to connect to.
+#
+# You may specify multiple Bitcoin Core RPC servers if you have them. They will
+# be randomly tried until one succeeds.
+#
+# Format: ["http://<user>:<pass>@<host>:<port>", ..]
+# Default: <none>
+# Required: true
+# Environment: SIGNER_BITCOIN__RPC_ENDPOINTS
+# Environment Example: http://user:pass@seed-1:4122,http://foo:bar@seed-2:4122
+rpc_endpoints = [
+    "http://btc:btc@bitcoind:18443",
+]
+
+# An optional fallback fee rate in sats/vbyte to use when the initial fee rate
+# is too high to construct any transaction package. When set, this value is used
+# directly as the retry fee rate. When unset, the signer estimates a lower fee
+# rate by targeting a longer confirmation window.
+# This is for tests only, it fails validation in mainnet.
+#
+# Default: <none>
+# Required: false
+# Environment: SIGNER_BITCOIN__FALLBACK_FEE
+fallback_fee = 5
+
+# !! ==============================================================================
+# !! Stacks Node Configuration
+# !! ==============================================================================
+[stacks]
+# The RPC URL(s) of the Stacks node(s) to connect to. At least one must be
+# provided. If multiple nodes are provided they will be tried in order when
+# making requests.
+endpoints = ["http://stacks-node:20443"]
+
+# !! ==============================================================================
+# !! Signer Configuration
+# !! ==============================================================================
+[signer]
+# The private key associated with the signer. This is used to generate the
+# signers associated public key and sign messages to other signers.
+#
+# This may be either in 32- or 33-byte format. If you generated the key using
+# `stacks-cli` or other ecosystem tools, it is likely that the key is in 33-byte
+# format which includes a stacks-proprietary suffix byte. The sBTC signer doesn't
+# make use of this byte and it will be trimmed automatically if provided.
+#
+# Format: "<hex-encoded-private-key>" (64 or 66 hex-characters)
+# Required: true
+# Environment: SIGNER_SIGNER__PRIVATE_KEY
+private_key = ""
+
+# Specifies which network to use when constructing and sending transactions
+# on stacks and bitcoin. This corresponds to the `chain` flag in the
+# bitcoin.conf file of the connected bitcoin-core node, and the
+# `burnchain.mode` flag int he config.toml of the connected stacks-core
+# node.
+#
+# Required: true
+# Possible values: mainnet, testnet, regtest
+# Environment: SIGNER_SIGNER__NETWORK
+network = "regtest"
+
+# Seconds to wait before processing a new Bitcoin block.
+# Required: true
+# Environment: SIGNER_SIGNER__BITCOIN_PROCESSING_DELAY
+bitcoin_processing_delay = 3
+
+# Seconds to wait before processing new SBTC requests.
+# Required: true
+# Environment: SIGNER_SIGNER__REQUESTS_PROCESSING_DELAY
+requests_processing_delay = 0
+
+# How many bitcoin blocks back from the chain tip the signer will look for
+# requests. Must be strictly positive.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__CONTEXT_WINDOW
+# context_window = 500
+
+# The maximum amount of time, in seconds, a signing round will take before
+# the coordinator will time out and return an error. This value must be
+# strictly positive.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__SIGNER_ROUND_MAX_DURATION
+# signer_round_max_duration = 30
+
+# The maximum amount of time, in seconds, a coordinator will wait for
+# pre-sign ACKs before timing out. Must be strictly
+# positive.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__BITCOIN_PRESIGN_REQUEST_MAX_DURATION
+# bitcoin_presign_request_max_duration = 30
+
+# The maximum amount of time, in seconds, for a distributed key generation
+# round before the coordinator will time out and return an error. Must be
+# strictly positive.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__DKG_MAX_DURATION
+# dkg_max_duration = 120
+
+# The amount of time, in seconds, the signer should pause for after
+# receiving a DKG begin message before relaying to give the other signers.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__DKG_BEGIN_PAUSE
+dkg_begin_pause = 2
+
+# The minimum bitcoin block height for which the sbtc signers will backfill
+# bitcoin blocks to. The signers may not work if operated before this
+# height. Defaults to the Nakamoto start height returned from the stacks
+# node if not present.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__SBTC_BITCOIN_START_HEIGHT
+# sbtc_bitcoin_start_height = 231
+
+# The maximum number of deposit inputs that will be included in a single
+# bitcoin transaction.
+#
+# Transactions must be constructed within a tenure of a bitcoin block, and
+# higher values here imply lower likelihood of signing all inputs before
+# the next bitcoin block arrives.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__MAX_DEPOSITS_PER_BITCOIN_TX
+# max_deposits_per_bitcoin_tx = 25
+
+# When defined, this field sets the scrape endpoint as an IPv4 or IPv6
+# socket address for exporting metrics for Prometheus.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__PROMETHEUS_EXPORTER_ENDPOINT
+# prometheus_exporter_endpoint = "[::]:9184"
+
+# The address that deployed the sbtc smart contracts.
+#
+# Required: true
+deployer = "SN3R84XZYA63QS28932XQF3G1J8R9PC3W76P9CSQS"
+
+# The signer database endpoint (pgsql connection string)
+#
+# Required: true
+# Environment: SIGNER_SIGNER__DB_ENDPOINT
+db_endpoint = ""
+
+# The public keys of the signer sit during the bootstrapping phase of
+# the signers.
+#
+# Required: true
+# Environment: SIGNER_SIGNER__BOOTSTRAP_SIGNING_SET
+bootstrap_signing_set = [
+    "035249137286c077ccee65ecc43e724b9b9e5a588e3d7f51e3b62f9624c2a49e46",
+    "031a4d9f4903da97498945a4e01a5023a1d53bc96ad670bfe03adf8a06c52e6380",
+    "02007311430123d4cad97f4f7e86e023b28143130a18099ecf094d36fef0f6135c",
+]
+
+# The number of signatures required for the signers' bootstrapped
+# multi-sig wallet on Stacks.
+#
+# Required: true
+bootstrap_signatures_required = 2
+
+# When defined, the signer will attempt to re-run DKG after the specified
+# Bitcoin block height. Please only use this parameter when instructed to by
+# the sBTC team.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__DKG_MIN_BITCOIN_BLOCK_HEIGHT
+# dkg_min_bitcoin_block_height = 1234
+
+# The number of bitcoin blocks after a DKG start where we attempt to verify the
+# shares. After this many blocks, we mark the shares as failed. Please only use
+# this parameter when instructed to by the sBTC team.
+#
+# Required: false
+# Environment: SIGNER_SIGNER__DKG_VERIFICATION_WINDOW
+# dkg_verification_window = 10
+
+# !! ==============================================================================
+# !! Stacks Event Observer Configuration
+# !!
+# !! The event observer listens for events on the Stacks blockchain. The listen
+# !! address must be reachable by your Stacks node, and must be configured in the
+# !! node's `event_observer` configuration section.
+# !!
+# !! Note that the event observer endpoint _does not_ support TLS and is served
+# !! over HTTP.
+# !! ==============================================================================
+[signer.event_observer]
+# The network interface (ip address) and port to bind the event observer server to.
+#
+# Format: "<ip>:<port>"
+# Required: true
+# Environment: SIGNER_SIGNER__EVENT_OBSERVER__BIND
+bind = "0.0.0.0:8801"
+
+# !! ==============================================================================
+# !! Signer P2P Networking Configuration
+# !! ==============================================================================
+[signer.p2p]
+# List of seed nodes to connect to bootstrap the network.
+#
+# If specified, these nodes will be used to discover other nodes on the network.
+# If not specified or if none of the specified seeds could be reached, the node
+# will attempt to discover other nodes using StackerDB.
+#
+# See the `listen_on` parameter for available protocols.
+#
+# Format: ["<protocol>:<ip>:<port>", "<protocol>:<ip>:<port>", ...]
+# Required: false
+# Environment: SIGNER_SIGNER__P2P__SEEDS
+# Environment Example: tcp://seed-1:4122,tcp://seed-2:4122
+# TODO(429): Add well-known seed nodes
+seeds = []
+
+# The local network interface(s) and port(s) to listen on.
+#
+# You may specify multiple interfaces and ports by adding additional entries to
+# the list. Entries can be addressed by any of IPv4 address, IPv6 address or
+# hostname. Note that not all networks have IPv6 enabled, so it is recommended
+# to provide an IPv4 address as well.
+#
+# Specifying a port of `0` will cause the server to bind to a random port,
+# and an IP of `0.0.0.0` will cause the server to listen on all available
+# interfaces.
+#
+# Available protocols:
+# - tcp: Standard TCP socket connections.
+# - quick-v1: QUIC over UDP. This protocol is faster and uses less bandwidth,
+#       but may not be supported by all nodes' networks. Nodes will always
+#       attempt QUIC connections first, and fall back to TCP if it fails.
+#       If UDP is blocked on your network then you should not specify a QUIC
+#       listener (as it will never be reachable).
+#       More information: https://en.wikipedia.org/wiki/QUIC
+#
+# Format: ["<protocol>:<ip>[:port]", ...]
+# - If port is omitted then the default port 4122 will be used.
+# Default: ["tcp://0.0.0.0:4122", "quic-v1://0.0.0.0:4122"]
+# Required: false
+# Environment: SIGNER_SIGNER__P2P__LISTEN_ON
+listen_on = []
+
+# The publicly accessible network endpoint to advertise to other nodes.
+#
+# If this is not specified then the node will attempt to use other peers on the
+# network to determine its public endpoint. This is the recommended
+# configuration for most users.
+#
+# If your network uses an advanced configuration with separate inbound/outbound
+# addresses then you must specify this value with your inbound address and
+# configure port-forwarding as auto-discovery will report your outbound address.
+#
+# Format: ["<protocol>:<ip>:<port>", ...] (see `listen_on` for protocol options)
+# Default: <none>
+# Required: true (but can be empty)
+# Environment: SIGNER_SIGNER__P2P__PUBLIC_ENDPOINTS
+public_endpoints = []
+
+# Enables/disables mDNS (multicast DNS) discovery. mDNS allows sBTC signers
+# running on the same local network to discover each other without explicitly
+# providing them as seed nodes.
+#
+# Default: false
+# Required: false
+# Environment: SIGNER_SIGNER__P2P__ENABLE_MDNS
+enable_mdns = false

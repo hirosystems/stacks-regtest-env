@@ -8,7 +8,7 @@ import {
   waitForSetup,
   logger,
   burnBlockToRewardCycle,
-} from './common';
+} from './common.js';
 
 const randInt = () => crypto.randomInt(0, 0xffffffffffff);
 const stackingInterval = parseEnvInt('STACKING_INTERVAL', true);
@@ -21,7 +21,7 @@ let startTxFee = stackingFee;
 const getNextTxFee = () => startTxFee++;
 
 async function run() {
-  const poxInfo = await accounts[0].client.getPoxInfo();
+  const poxInfo = await accounts[0]!.client.getPoxInfo();
   if (!poxInfo.contract_id.endsWith('.pox-4')) {
     // console.log(`Pox contract is not .pox-4, skipping stacking (contract=${poxInfo.contract_id})`);
     logger.info(
